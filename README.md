@@ -11,6 +11,9 @@ This part contains the UML diagrams of the save software.
 ![class diagram](ressources/class_diagram.png)
 
 #### Sequence diagram
+# Projet_GL test
+Ce repository contient le projet en groupe de Saifallah, Achille, Vincent, Olaf et Seif pour le bloc genie logiciel en C#
+
 ```mermaid
   %%{init: {
   'theme': 'base',
@@ -25,228 +28,87 @@ This part contains the UML diagrams of the save software.
 }}%%
 
 sequenceDiagram
-    actor User as User
-    participant App as Terminal Application
-    participant Sys as System (Local/Remote)
-    participant Log as Logger
-    participant Timer as Timer (15min)
+    actor U as User
+    participant I as IHM
+    participant M as Main
+    participant V as View
+    participant C as Controller
+    participant MC as Model Config
+    participant MB as Model Backup
+    participant S as System
+    participant L as Logger
     
     rect rgba(245, 245, 250, 0.3)
-    Note over App: Application Started
+    activate U
     
     rect rgba(220, 220, 255, 0.5)
-    Note right of User: Initialization Phase
-    
-    alt First Run - Configuration Missing
-        App->>Sys: Fetch Configuration
-        activate Sys
-        Sys-->>App: Configuration Not Found
-        deactivate Sys
+    Note right of U: Initialization Phase
+        U->>M: Start App
+        activate M
+        M->>C: initializationProcess()
+        activate C
+        C->>MC: fetchConfig()
+        activate MC
+        MC-->>C: Config not found
+        C->>L: Log("Config not found", "ERROR")
+        activate L
+        deactivate L
+        C->>V: initializationForm()
+        activate V
+        V->>I: Display the config form
+        activate I 
+        I->>U: Request Initial Config
         
-        App->>User: Request Initial Setup
-        activate User
-        User->>App: Configure Directories A & B
-        deactivate User
-        
-        App->>Sys: Save Configuration
-        activate Sys
-        Sys-->>App: Configuration Saved
-        deactivate Sys
-        
-        App->>Log: Log: Initial Configuration Created
-        activate Log
-        deactivate Log
-    else Configuration Exists
-        App->>Sys: Fetch Configuration
-        activate Sys
-        Sys-->>App: Return Configuration
-        deactivate Sys
-        
-        App->>Sys: Load Configuration
-        activate Sys
-        Sys-->>App: Configuration Loaded
-        deactivate Sys
-        
-        App->>Log: Log: Configuration Loaded
-        activate Log
-        deactivate Log
-    end
-    
-    App->>Sys: List Configured Projects
-    activate Sys
-    Sys-->>App: Return Project List (≤ 5)
-    deactivate Sys
-    
-    App->>User: Display Project List
-    App->>Log: Log: Projects Retrieved (n/5)
-    activate Log
-    deactivate Log
-    end
-    
-    rect rgba(220, 255, 220, 0.5)
-    Note right of User: Project Management
-    
-    opt Add New Project
-        User->>App: Add New Project
-        activate App
-        App->>App: Check if Projects < 5
-        
-        alt Project Limit Not Reached
-            App->>Sys: Add Project to Configuration
-            activate Sys
-            Sys-->>App: Project Added
-            deactivate Sys
-            
-            App->>Log: Log: New Project Added
-            activate Log
-            deactivate Log
-            
-            App->>User: Confirm Project Addition
-        else Project Limit Reached
-            App->>User: Error: Maximum Project Limit Reached
-            
-            App->>Log: Log: Project Addition Failed - Limit Reached
-            activate Log
-            deactivate Log
-        end
-        deactivate App
-    end
-    
-    opt Download Missing Project
-        User->>App: Request Download of Project X
-        activate App
-        
-        App->>Sys: Check Project X Availability
-        activate Sys
-        Sys-->>App: Project X Available
-        deactivate Sys
-        
-        App->>Log: Log: Starting Download of Project X
-        activate Log
-        deactivate Log
-        
-        App->>Sys: Download Project X
-        activate Sys
-        Sys-->>App: Project X Data
-        deactivate Sys
-        
-        App->>Sys: Install Project X in Directory A
-        activate Sys
-        Sys-->>App: Installation Complete
-        deactivate Sys
-        
-        App->>Log: Log: Project X Installed
-        activate Log
-        deactivate Log
-        
-        App->>User: Confirm Project X Installation
-        deactivate App
-    end
-    end
-    
-    rect rgba(255, 220, 220, 0.5)
-    Note right of User: Manual Save Operation
-    
-    User->>App: Save Project
-    activate App
-    
-    App->>Sys: Check Changes in Working Directory
-    activate Sys
-    Sys-->>App: List of Changed Files
-    deactivate Sys
-    
-    alt Changes Detected
-        App->>Sys: Copy New Version to Save Directory
-        activate Sys
-        Sys-->>App: Save Complete
-        deactivate Sys
-        
-        App->>Log: Log: Major Version Saved
-        activate Log
-        deactivate Log
-        
-        App->>User: Confirm Save Operation
-    else No Changes
-        App->>User: No Changes to Save
-        
-        App->>Log: Log: Save Operation - No Changes
-        activate Log
-        deactivate Log
-    end
-    deactivate App
-    end
-    
-    rect rgba(220, 220, 255, 0.5)
-    Note right of User: Automatic Save Configuration
-    
-    User->>App: Toggle Auto-Save
-    activate App
-    
-    App->>Timer: Start Timer (15min interval)
-    activate Timer
-    
-    App->>Log: Log: Auto-Save Enabled
-    activate Log
-    deactivate Log
-    
-    App->>User: Confirm Auto-Save Enabled
-    deactivate App
-    
-    loop Every 15 Minutes
-        Timer->>App: Trigger Automatic Save
-        activate App
-        
-        App->>Log: Log: Starting Auto-Save Cycle
-        activate Log
-        deactivate Log
-        
-        App->>Sys: Check Changes in Working Directory
-        activate Sys
-        Sys-->>App: List of Changed Files
-        deactivate Sys
-        
-        alt Changes Detected
-            App->>Sys: Copy Changes to Save Directory
-            activate Sys
-            Sys-->>App: Save Complete
-            deactivate Sys
-            
-            App->>Log: Log: Auto-Save Complete
-            activate Log
-            deactivate Log
-        else No Changes
-            App->>Log: Log: Auto-Save - No Changes
-            activate Log
-            deactivate Log
-        end
-        deactivate App
-    end
-    deactivate Timer
-    end
-    
-    rect rgba(255, 255, 220, 0.5)
-    Note right of User: Application Termination
-    
-    User->>App: Close Application
-    activate App
-    
-    App->>Sys: Perform Final Save
-    activate Sys
-    Sys-->>App: Final Save Complete
-    deactivate Sys
-    
-    App->>Timer: Stop Timer
-    activate Timer
-    Timer-->>App: Timer Stopped
-    deactivate Timer
-    
-    App->>Log: Log: Application Shutdown
-    activate Log
-    deactivate Log
-    
-    App->>User: Confirm Application Closed
-    deactivate App
-    end
+        U-->>I: Configure Directories A-B & Language
+        I-->>V: Completed Initial Config
+        V-->>C: Completed initializationForm()
+
+        C->>MC: setConfig(directoryA: string, directoryB: string, language: string)
+        MC-->>C: Config Saved Successfully
+        C->>L: Log("Config Saved", "INFO")
+        activate L
+        deactivate L
+        C->>MC: loadConfig()
+        MC-->>C: Config Loaded
+        deactivate MC
+        C->>L: Log("Config Loaded", "INFO")
+        activate L
+        deactivate L
     end
 
-```
+    rect rgba(246, 66, 105, 0.2)
+    Note right of U: System Menu
+    C->>V: displayMenu()
+    V->>I: Display Option Menu
+    I->>U: Request to choose an option from the menu
+    U-->>I: Choose Option between 1-5
+    I-->>V: Completed Option Menu
+    V-->>C: displayMenu() Output
+    C->>L: Log("Option " + option + " selected", "INFO")
+    activate L
+    deactivate L
+    end
+
+    alt Option 1
+    rect rgba(146, 36, 200, 0.2)
+    Note right of U: Option 1 : Download Project
+    C->>V: showProjectList()
+    V->>I: Display Project List
+    I->>U: Request to choose a project
+    U-->>I: Choose Between 1-5
+    I-->>V: Selected Project n
+    V-->>C: showProjectList() Output
+    C->>L: Log("Project " + projectId + " selected", "INFO")
+    activate L
+    deactivate L
+    C->>MB: fetchVersionList(projectId: int)
+    activate MB
+    MB-->>C: List of project versions
+    deactivate MB
+    C->>V: showVersionList(versions: List<Version>)
+    V->>I: Display options
+    I->>U: Request to choose a version
+    U-->>I: Version n
+    I-->>V: Version n selected
+    V-->>C: showVersionList() Output
+...
