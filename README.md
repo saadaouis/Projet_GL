@@ -5,7 +5,7 @@ This repository contains the group-project of Seif, Achille, Vincent and Olaf fo
 This part contains the UML diagrams of the save software.
 
 #### Activity diagram
-![activity diagram](ressources/activity_diagram.drawio.png)
+![activity diagram](ressources/activity_diagram.png)
 
 #### Class diagram
 ![class diagram](ressources/class_diagram.png)
