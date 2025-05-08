@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   easysave:
+    image: easysave:1.0
     build:
       context: .
       dockerfile: Dockerfile

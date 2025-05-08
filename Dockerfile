@@ -1,25 +1,24 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY ["EasySave/EasySave.csproj", "EasySave/"]
-RUN dotnet restore "EasySave/EasySave.csproj"
+COPY ["easysave.csproj", "./"]
+RUN dotnet restore "easysave.csproj"
 
 # Copy the rest of the code
 COPY . .
 
 # Build and publish
-WORKDIR "/src/EasySave"
-RUN dotnet build "EasySave.csproj" -c Release -o /app/build
-RUN dotnet publish "EasySave.csproj" -c Release -o /app/publish
+RUN dotnet build "easysave.csproj" -c Release -o /app/build
+RUN dotnet publish "easysave.csproj" -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 # Create directories for logs and configs
-RUN mkdir -p /app/logs /app/config
+RUN mkdir -p /app/logs /app/config /app/projects
 
 # Copy the published app
 COPY --from=build /app/publish .
@@ -28,6 +27,7 @@ COPY --from=build /app/publish .
 ENV DOTNET_ENVIRONMENT=Production
 ENV CONFIG_PATH=/app/config
 ENV LOG_PATH=/app/logs
+ENV PROJECTS_PATH=/app/projects
 
 # Run the app
-ENTRYPOINT ["dotnet", "EasySave.dll"] 
+ENTRYPOINT ["dotnet", "easysave.dll"] 
