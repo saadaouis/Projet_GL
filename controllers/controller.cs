@@ -2,6 +2,9 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using EasySave.Services.Logger;
+
 namespace EasySave.Controllers
 {
     /// <summary>
@@ -18,10 +21,11 @@ namespace EasySave.Controllers
 
         /// <summary>
         /// Starts the controller.
-        /// </summary>
-        public void Start()
+            /// </summary>
+        public void Initialization()
         {
             Console.WriteLine("Hello, World!");
+
         }
     }
 }

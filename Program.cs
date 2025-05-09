@@ -18,7 +18,7 @@ namespace EasySave
         private static void Main(string[] args)
         {
             Controller controller = new Controller();
-            controller.Start();
+            controller.Initialization();
         }
     }
 }
