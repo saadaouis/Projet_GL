@@ -63,5 +63,22 @@ namespace EasySave.Models
                 return false;
             }
         }
+
+        /// <summary>Saves the configuration to the config file.</summary>
+        /// <param name="config">The configuration to save.</param>
+        /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
+        public bool Save(Dictionary<string, string> config)
+        {
+            try
+            {
+                string jsonString = JsonSerializer.Serialize(config, JsonOptions);
+                File.WriteAllText(ConfigPath, jsonString);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
