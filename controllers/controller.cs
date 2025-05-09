@@ -37,7 +37,14 @@ namespace EasySave.Controllers
 
             while (this.isRunning)
             {
-                modelConfig.LoadConfig();
+                if (modelConfig.Load())
+                {
+                    View.ShowMessage("Config loaded", "info");
+                }
+                else
+                {
+                    View.ShowMessage("No config found", "error");
+                }
             }
         }
     }
