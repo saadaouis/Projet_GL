@@ -2,7 +2,7 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-namespace EasySave.View
+namespace EasySave.Views
 {
     /// <summary>
     /// View class.

@@ -3,7 +3,9 @@
 // </copyright>
 
 using System;
+using EasySave.Models;
 using EasySave.Services.Logger;
+using EasySave.Views;
 
 namespace EasySave.Controllers
 {
@@ -24,8 +26,10 @@ namespace EasySave.Controllers
             /// </summary>
         public void Initialization()
         {
-            Console.WriteLine("Hello, World!");
-
+            ILogger logger = new ConsoleLogger();
+            View view = new();
+            ModelConfig modelConfig = new();
+            ModelBackup modelBackup = new();
         }
     }
 }
