@@ -3,6 +3,7 @@
 // </copyright>
 
 using System;
+using EasySave.Controllers;
 
 namespace EasySave
 {
@@ -16,7 +17,8 @@ namespace EasySave
         /// </summary>
         private static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            Controller controller = new Controller();
+            controller.Start();
         }
     }
 }

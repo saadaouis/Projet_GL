@@ -15,5 +15,13 @@ namespace EasySave.Controllers
         public Controller()
         {
         }
+
+        /// <summary>
+        /// Starts the controller.
+        /// </summary>
+        public void Start()
+        {
+            Console.WriteLine("Hello, World!");
+        }
     }
 }
