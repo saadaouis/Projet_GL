@@ -19,6 +19,7 @@ namespace EasySave
         {
             Controller controller = new Controller();
             controller.Initialization();
+            Console.WriteLine("Shutting down...");
         }
     }
 }

@@ -46,6 +46,7 @@ namespace EasySave.Controllers
                     View.ShowMessage("No config found", "error");
                     Dictionary<string, string> config = view.InitializeForm();
                 }
+                this.isRunning = false;
             }
         }
     }
