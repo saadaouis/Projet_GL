@@ -188,32 +188,69 @@ namespace EasySave.Controllers
 
         private void DownloadBackup()
         {
+            View.ShowMessage("Download backup", "info");
+            var projects = this.modelBackup!.FetchProjects("destination");
+            if (projects.Count == 0)
+            {
+                View.ShowMessage("No backup projects found.", "warning");
+                return;
+            }
+
+            int selectedIndex = View.ShowProjectList(projects);
+            string projectName = projects[selectedIndex].Name;
+
+            var state = this.modelBackup.GetBackupState(projectName);
+            state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
+
+            bool success = this.modelBackup.SaveProject(projectName);
+            if (!success)
+            {
+                View.ShowMessage("Failed to download backup.", "error");
+            }
         }
 
         private void SaveProject()
         {
             View.ShowMessage("Save project", "info");
             var projects = this.modelBackup!.FetchProjects("source");
-            int selectedProjectIndex = View.ShowProjectList(projects);
-            ModelBackup.Project selectedProject = projects[selectedProjectIndex];
-            this.modelBackup!.SaveProject(selectedProject.Name);
-            View.ShowMessage("Project saved", "info");
+            if (projects.Count == 0)
+            {
+                View.ShowMessage("No source projects found.", "warning");
+                return;
+            }
+
+            List<int> selectedIndices = View.ShowMultipleProjectList(projects);
+            foreach (int index in selectedIndices)
+            {
+                string projectName = projects[index].Name;
+                var state = this.modelBackup.GetBackupState(projectName);
+                state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
+
+                bool success = this.modelBackup.SaveProject(projectName);
+                if (!success)
+                {
+                    View.ShowMessage($"Failed to save backup for project: {projectName}", "error");
+                }
+            }
         }
 
         private void ToggleAutoSave()
         {
             View.ShowMessage("Toggle AutoSave", "info");
             var projects = this.modelBackup!.FetchProjects("source");
-            List<int> selectedProjectIndexes = View.ShowMultipleProjectList(projects);
-            List<ModelBackup.Project> selectedProjects = new List<ModelBackup.Project>();
-            foreach (var projectIndex in selectedProjectIndexes)
+            if (projects.Count == 0)
             {
-                ModelBackup.Project selectedProject = projects[projectIndex];
-                selectedProjects.Add(selectedProject);
+                View.ShowMessage("No source projects found.", "warning");
+                return;
             }
 
-            this.modelBackup!.StartAutoSave(selectedProjects, 10);
-            View.ShowMessage("AutoSave toggled", "info");
+            int selectedIndex = View.ShowProjectList(projects);
+            string projectName = projects[selectedIndex].Name;
+            bool isEnabled = this.modelBackup.ToggleAutoSave(projectName, 900); // 900 seconds = 15 minutes
+            View.ClearConsole();
+            View.ShowMessage(
+                isEnabled ? $"Auto-save enabled for {projectName}" : $"Auto-save disabled for {projectName}",
+                "info");
         }
     }
 }

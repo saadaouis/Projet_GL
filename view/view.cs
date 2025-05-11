@@ -9,6 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using EasySave.Models;
 
+
 namespace EasySave.Views
 {
     /// <summary>
@@ -184,6 +185,43 @@ namespace EasySave.Views
         }
 
         /// <summary>
+        /// Displays the backup progress for a project.
+        /// </summary>
+        /// <param name="state">The backup state to display.</param>
+        public static void ShowBackupProgress(BackupState state)
+        {
+            Console.Clear();
+            Console.WriteLine($"Project: {state.ProjectName}");
+            Console.WriteLine($"Status: {state.CurrentOperation}");
+
+            if (state.ErrorMessage != null)
+            {
+                Console.WriteLine($"Error: {state.ErrorMessage}");
+                return;
+            }
+
+            // File progress bar
+            Console.Write("Files: [");
+            int fileProgress = (int)(state.ProgressPercentage / 2);
+            Console.Write(new string('#', fileProgress));
+            Console.Write(new string('-', 50 - fileProgress));
+            Console.WriteLine($"] {state.ProcessedFiles}/{state.TotalFiles} files");
+
+            // Size progress bar
+            Console.Write("Size:  [");
+            int sizeProgress = (int)(state.SizeProgressPercentage / 2);
+            Console.Write(new string('#', sizeProgress));
+            Console.Write(new string('-', 50 - sizeProgress));
+            Console.WriteLine($"] {FormatFileSize(state.ProcessedSize)}/{FormatFileSize(state.TotalSize)}");
+
+            if (state.IsComplete)
+            {
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
+            }
+        }
+
+        /// <summary>
         /// Displays a list of versions.
         /// </summary>
         /// <param name="versions">The list of versions to display.</param>
@@ -268,6 +306,24 @@ namespace EasySave.Views
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Formats a file size in bytes to a human-readable string.
+        /// </summary>
+        private static string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            int order = 0;
+            double size = bytes;
+
+            while (size >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                size /= 1024;
+            }
+
+            return $"{size:0.##} {sizes[order]}";
         }
     }
 }
