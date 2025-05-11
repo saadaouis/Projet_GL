@@ -64,10 +64,20 @@ namespace EasySave.Views
         /// <param name="message">The message to display.</param>
         /// <param name="severity">The severity of the message. "info", "warning", "error" "text".</param>
         /// <returns>The input of the user.</returns>
-        public static string? ConsoleWriteLine(string message, string severity = SeverityText)
+        public static string ConsoleWriteLine(string message, string severity = SeverityText)
         {
             ShowMessage(message, severity);
-            return Console.ReadLine() ?? string.Empty;
+            while (true)
+            {
+                if (Console.ReadLine() != null)
+                {
+                    return Console.ReadLine()!;
+                }
+            else
+                {
+                    ShowMessage("Invalid input", SeverityError);
+                }
+            }
         }
 
         /// <summary> Display the main menu. </summary>
