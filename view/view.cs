@@ -60,6 +60,16 @@ namespace EasySave.Views
             Console.ResetColor();
         }
 
+        /// <summary> Console.WriteLine with color. </summary>
+        /// <param name="message">The message to display.</param>
+        /// <param name="severity">The severity of the message. "info", "warning", "error" "text".</param>
+        /// <returns>The input of the user.</returns>
+        public static string? ConsoleWriteLine(string message, string severity = SeverityText)
+        {
+            ShowMessage(message, severity);
+            return Console.ReadLine() ?? string.Empty;
+        }
+
         /// <summary> Display the main menu. </summary>
         /// <returns>The choice of the user.</returns>
         public static int ShowMenu()
