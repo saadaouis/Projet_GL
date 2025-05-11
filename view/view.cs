@@ -51,7 +51,29 @@ namespace EasySave.Views
             Console.ResetColor();
         }
 
-         /// <summary>
+        /// <summary>
+        /// Validates if a path exists and is a directory.
+        /// </summary>
+        /// <param name="path">The path to validate.</param>
+        /// <returns>True if the path is valid, false otherwise.</returns>
+        private static bool IsValidDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                ShowMessage("Path cannot be empty", "error");
+                return false;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                ShowMessage($"Directory does not exist: {path}", "error");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Initializes the configuration form.
         /// </summary>
         /// <returns>A dictionary containing the configuration values.</returns>
@@ -59,22 +81,21 @@ namespace EasySave.Views
         {
             ShowMessage("Config initialization", "info");
 
-            ShowMessage("Select Source Folder", "text");
-            string? source = Console.ReadLine();
-            if (string.IsNullOrEmpty(source))
+            // Source folder selection
+            string? source;
+            do
             {
-                ShowMessage("Source folder selection cancelled", "error");
-                return new Dictionary<string, string>();
-            }
+                ShowMessage("Enter Source Folder path:", "text");
+                source = Console.ReadLine();
+            } while (!IsValidDirectory(source));
 
             // Destination folder selection
-            ShowMessage("Select Destination Folder", "text");
-            string? destination = Console.ReadLine();
-            if (string.IsNullOrEmpty(destination))
+            string? destination;
+            do
             {
-                ShowMessage("Destination folder selection cancelled", "error");
-                return new Dictionary<string, string>();
-            }
+                ShowMessage("Enter Destination Folder path:", "text");
+                destination = Console.ReadLine();
+            } while (!IsValidDirectory(destination));
 
             // Language selection
             ShowMessage("\nSelect language / Choisir la langue:", "info");
@@ -84,10 +105,6 @@ namespace EasySave.Views
             string? languageChoice = Console.ReadLine();
             string language = languageChoice == "2" ? "Fr" : "En";
 
-            Console.WriteLine(source);
-            Console.WriteLine(destination);
-            Console.WriteLine(language);
-
             return new Dictionary<string, string>
             {
                 { "source", source },
@@ -95,11 +112,5 @@ namespace EasySave.Views
                 { "language", language },
             };
         }
-
-        /// <summary>
-        /// Shows a folder selection dialog.
-        /// </summary>
-        /// <param name="title">The title of the dialog.</param>
-        /// <returns>The selected folder path or null if cancelled.</returns>
     }
 }
