@@ -95,7 +95,7 @@ namespace EasySave.Controllers
                         break;
                     case 2:
                         View.ClearConsole();
-                        View.ShowMessage("Save backup", "info");
+                        this.SaveProject();
                         break;
                     case 3:
                         View.ClearConsole();
@@ -171,9 +171,11 @@ namespace EasySave.Controllers
         private void SaveProject()
         {
             View.ShowMessage("Save project", "info");
-            int selectedProjectIndex = View.ShowProjectList(this.projects);
-            ModelBackup.Project selectedProject = this.projects[selectedProjectIndex];
+            var projects = this.modelBackup!.FetchProjects("source");
+            int selectedProjectIndex = View.ShowProjectList(projects);
+            ModelBackup.Project selectedProject = projects[selectedProjectIndex];
             this.modelBackup!.SaveProject(selectedProject.Name);
+            View.ShowMessage("Project saved", "info");
         }
     }
 }

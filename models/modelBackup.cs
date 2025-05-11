@@ -21,6 +21,9 @@ namespace EasySave.Models
         private readonly string destinationPath = string.Empty;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
 
+        /// <summary> Constructor for the ModelBackup class.</summary>
+        /// <param name="sourcePath">The source directory path.</param>
+        /// <param name="destinationPath">The destination directory path.</param>
         public ModelBackup(string sourcePath, string destinationPath)
         {
             this.sourcePath = sourcePath;
@@ -30,17 +33,27 @@ namespace EasySave.Models
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
         /// </summary>
-        /// <param name="sourcePath">The source directory path.</param>
-        /// <param name="destinationPath">The destination directory path.</param>
+        /// <param name="directory">The directory to fetch projects from.</param>
         /// <returns>A list of projects with their details.</returns>
-        public List<Project> FetchProjects()
+        public List<Project> FetchProjects(string directory = "destination")
         {
+            string path = string.Empty;
+
+            if (directory == "destination")
+            {
+                path = this.destinationPath;
+            }
+            else
+            {
+                path = this.sourcePath;
+            }
+
             var projects = new List<Project>();
 
             try
             {
                 // Get all directories and order by last write time
-                var directories = Directory.GetDirectories(destinationPath)
+                var directories = Directory.GetDirectories(path)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Take(MaxProjects);
