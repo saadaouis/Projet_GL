@@ -63,7 +63,29 @@ namespace EasySave.Controllers
 
             while (this.isRunning)
             {
-                this.isRunning = false;
+                int choice = View.ShowMenu();
+                switch (choice)
+                {
+                    case 1:
+                        View.ShowMessage("Download backup", "info");
+                        break;
+                    case 2:
+                        View.ShowMessage("Save backup", "info");
+                        break;
+                    case 3:
+                        View.ShowMessage("Toogle AutoSave", "info");
+                        break;
+                    case 4:
+                        View.ShowMessage("Modify config", "info");
+                        break;
+                    case 5:
+                        View.ShowMessage("Exit", "info");
+                        this.isRunning = false;
+                        break;
+                    default:
+                        View.ShowMessage("Invalid choice", "error");
+                        break;
+                }
             }
         }
     }

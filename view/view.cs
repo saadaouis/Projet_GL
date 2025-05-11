@@ -15,6 +15,15 @@ namespace EasySave.Views
     /// </summary>
     public class View
     {
+        private const int MinMenuChoice = 1;
+        private const int MaxMenuChoice = 5;
+        private const string SeverityInfo = "info";
+        private const string SeverityWarning = "warning";
+        private const string SeverityError = "error";
+        private const string SeverityText = "text";
+        private const string LanguageFrench = "Fr";
+        private const string LanguageEnglish = "En";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="View"/> class.
         /// </summary>
@@ -27,21 +36,21 @@ namespace EasySave.Views
         /// </summary>
         /// <param name="message">The message to display.</param>
         /// <param name="severity">The severity of the message. "info", "warning", "error" "text".</param>
-        public static void ShowMessage(string message, string severity = "text")
+        public static void ShowMessage(string message, string severity = SeverityText)
         {
             var color = ConsoleColor.White;
             switch (severity)
             {
-                case "info":
+                case SeverityInfo:
                     color = ConsoleColor.Blue;
                     break;
-                case "warning":
+                case SeverityWarning:
                     color = ConsoleColor.Yellow;
                     break;
-                case "error":
+                case SeverityError:
                     color = ConsoleColor.Red;
                     break;
-                case "text":
+                case SeverityText:
                     color = ConsoleColor.White;
                     break;
             }
@@ -51,19 +60,53 @@ namespace EasySave.Views
             Console.ResetColor();
         }
 
+        /// <summary> Display the main menu. </summary>
+        /// <returns>The choice of the user.</returns>
+        public static int ShowMenu()
+        {
+            ShowMessage("Main menu", SeverityInfo);
+            ShowMessage("1) Download backup", SeverityText);
+            ShowMessage("2) Save backup", SeverityText);
+            ShowMessage("3) Toogle AutoSave", SeverityText);
+            ShowMessage("4) Modify config", SeverityText);
+            ShowMessage("5) Exit", SeverityText);
+
+            while (true)
+            {
+                string? choice = Console.ReadLine();
+                if (choice != null && int.TryParse(choice, out int choiceInt) &&
+                    choiceInt >= MinMenuChoice && choiceInt <= MaxMenuChoice)
+                {
+                    return choiceInt;
+                }
+                else
+                {
+                    ShowMessage("Invalid choice", SeverityError);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears the console.
+        /// </summary>
+        public static void ClearConsole()
+        {
+            Console.Clear();
+        }
+
         /// <summary>
         /// Initializes the configuration form.
         /// </summary>
         /// <returns>A dictionary containing the configuration values.</returns>
         public Dictionary<string, string> InitializeForm()
         {
-            ShowMessage("Config initialization", "info");
+            ShowMessage("Config initialization", SeverityInfo);
 
             // Source folder selection
             string? source;
             do
             {
-                ShowMessage("Enter Source Folder path:", "text");
+                ShowMessage("Enter Source Folder path:", SeverityText);
                 source = Console.ReadLine();
             }
             while (!IsValidDirectory(source));
@@ -72,18 +115,18 @@ namespace EasySave.Views
             string? destination;
             do
             {
-                ShowMessage("Enter Destination Folder path:", "text");
+                ShowMessage("Enter Destination Folder path:", SeverityText);
                 destination = Console.ReadLine();
             }
             while (!IsValidDirectory(destination));
 
             // Language selection
-            ShowMessage("\nSelect language / Choisir la langue:", "info");
-            ShowMessage("1) English", "text");
-            ShowMessage("2) Français", "text");
+            ShowMessage("\nSelect language / Choisir la langue:", SeverityInfo);
+            ShowMessage("1) English", SeverityText);
+            ShowMessage("2) Français", SeverityText);
 
             string? languageChoice = Console.ReadLine();
-            string language = languageChoice == "2" ? "Fr" : "En";
+            string language = languageChoice == "2" ? LanguageFrench : LanguageEnglish;
 
             return new Dictionary<string, string>
             {
@@ -93,7 +136,6 @@ namespace EasySave.Views
             };
         }
 
-        public static 
         /// <summary>
         /// Validates if a path exists and is a directory.
         /// </summary>
@@ -103,13 +145,13 @@ namespace EasySave.Views
         {
             if (string.IsNullOrEmpty(path))
             {
-                ShowMessage("Path cannot be empty", "error");
+                ShowMessage("Path cannot be empty", SeverityError);
                 return false;
             }
 
             if (!Directory.Exists(path))
             {
-                ShowMessage($"Directory does not exist: {path}", "error");
+                ShowMessage($"Directory does not exist: {path}", SeverityError);
                 return false;
             }
 
