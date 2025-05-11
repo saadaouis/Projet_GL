@@ -200,6 +200,7 @@ namespace EasySave.Models
                 string projectDir = Path.Combine(this.destinationPath, projectName);
                 string saveTypeDir = isAutoSave ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
+                string sourceDirPath = Path.Combine(this.sourcePath, projectName);
 
                 // Create directories if they don't exist
                 Directory.CreateDirectory(saveDir);
@@ -209,7 +210,7 @@ namespace EasySave.Models
                 string versionDir = Path.Combine(saveDir, $"V{nextVersion}");
 
                 // Copy the project
-                CopyDirectoryRecursive(this.sourcePath, versionDir);
+                CopyDirectoryRecursive(sourceDirPath, versionDir);
 
                 return true;
             }
@@ -259,10 +260,10 @@ namespace EasySave.Models
         /// <param name="projectName">The name of the project.</param>
         public void StopAutoSave(string projectName)
         {
-            if (autoSaveTasks.TryGetValue(projectName, out var cts))
+            if (this.autoSaveTasks.TryGetValue(projectName, out var cts))
             {
                 cts.Cancel();
-                autoSaveTasks.Remove(projectName);
+                this.autoSaveTasks.Remove(projectName);
             }
         }
 
