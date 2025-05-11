@@ -15,6 +15,7 @@ namespace EasySave.Controllers
     public class Controller
     {
         private bool isRunning = false;
+        private List<ModelBackup.Project> projects;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Controller"/> class.
@@ -22,6 +23,7 @@ namespace EasySave.Controllers
         ///
         public Controller()
         {
+            this.projects = new List<ModelBackup.Project>();
         }
 
         /// <summary>
@@ -33,7 +35,6 @@ namespace EasySave.Controllers
             ILogger logger = new ConsoleLogger();
             View view = new();
             ModelConfig modelConfig = new();
-            ModelBackup modelBackup = new();
 
             if (modelConfig.Load())
             {
@@ -49,6 +50,8 @@ namespace EasySave.Controllers
                     if (modelConfig.Load())
                     {
                         View.ShowMessage("Config loaded", "info");
+                        ModelBackup modelBackup = new(config["destination"]);
+                        this.projects = modelBackup.FetchProjects();
                     }
                     else
                     {
