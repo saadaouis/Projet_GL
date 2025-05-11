@@ -18,19 +18,19 @@ namespace EasySave.Models
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNamingPolicy = null, // Use exact property names
         };
 
         /// <summary>Gets or sets the source directory path.</summary>
-        [JsonPropertyName("source")]
+        [JsonPropertyName("Source")]
         public string? Source { get; set; } = string.Empty;
 
         /// <summary>Gets or sets the destination directory path.</summary>
-        [JsonPropertyName("destination")]
+        [JsonPropertyName("Destination")]
         public string? Destination { get; set; } = string.Empty;
 
         /// <summary>Gets or sets the application language.</summary>
-        [JsonPropertyName("language")]
+        [JsonPropertyName("Language")]
         public string? Language { get; set; } = "En";
 
         /// <summary>Loads the configuration from the config file.</summary>
@@ -45,21 +45,22 @@ namespace EasySave.Models
                 }
 
                 string jsonString = File.ReadAllText(ConfigPath);
-                var config = JsonSerializer.Deserialize<ModelConfig>(jsonString, JsonOptions);
+                var configFile = JsonSerializer.Deserialize<ModelConfig>(jsonString, JsonOptions);
 
-                if (config == null)
+                if (configFile == null)
                 {
                     return false;
                 }
 
-                this.Source = config.Source;
-                this.Destination = config.Destination;
-                this.Language = config.Language;
+                this.Source = configFile.Source;
+                this.Destination = configFile.Destination;
+                this.Language = configFile.Language;
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error loading config: {ex.Message}");
                 return false;
             }
         }
@@ -78,12 +79,30 @@ namespace EasySave.Models
                     Directory.CreateDirectory(directoryPath);
                 }
 
-                string jsonString = JsonSerializer.Serialize(config, JsonOptions);
+                // Update the current instance with the new values
+                if (config.ContainsKey("Source"))
+                {
+                    this.Source = config["Source"];
+                }
+
+                if (config.ContainsKey("Destination"))
+                {
+                    this.Destination = config["Destination"];
+                }
+
+                if (config.ContainsKey("Language"))
+                {
+                    this.Language = config["Language"];
+                }
+
+                // Serialize the current instance
+                string jsonString = JsonSerializer.Serialize(this, JsonOptions);
                 File.WriteAllText(ConfigPath, jsonString);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error saving config: {ex.Message}");
                 return false;
             }
         }
