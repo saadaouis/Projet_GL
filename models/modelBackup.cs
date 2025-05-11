@@ -91,6 +91,26 @@ namespace EasySave.Models
         }
 
         /// <summary>
+        /// Fetches the versions of a project.
+        /// </summary>
+        /// <param name="project_number">The project number.</param>
+        /// <returns>A list of versions.</returns>
+        public List<string> FetchVersions(int project_number)
+        {
+            var versions = new List<string>();
+            var project_path = Path.Combine(sourcePath, $"Project{project_number}");
+            if (Directory.Exists(project_path))
+            {
+                versions = Directory.GetDirectories(project_path)
+                    .Select(dir => new DirectoryInfo(dir))
+                    .OrderByDescending(dir => dir.LastWriteTime)
+                    .Select(dir => dir.Name)
+                    .ToList();
+            }
+            return versions;
+        }
+
+        /// <summary>
         /// Calculates the total size of a directory in bytes.
         /// </summary>
         private static long CalculateDirectorySize(DirectoryInfo directory)
