@@ -15,8 +15,8 @@ namespace EasySave.Models
     public class ModelBackup
     {
         private const int MaxProjects = 5;
-        private string sourcePath;
-        private string destinationPath;
+        private readonly string sourcePath;
+        private readonly string destinationPath;
 
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
