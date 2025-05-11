@@ -68,7 +68,7 @@ namespace EasySave.Models
         /// <summary>Saves the configuration to the config file.</summary>
         /// <param name="config">The configuration to save.</param>
         /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
-        public bool Save(Dictionary<string, string> config)
+        public bool SaveOrOverride(Dictionary<string, string> config)
         {
             try
             {
@@ -103,6 +103,12 @@ namespace EasySave.Models
             catch (Exception ex)
             {
                 Console.WriteLine($"Error saving config: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
+
                 return false;
             }
         }
