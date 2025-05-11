@@ -17,7 +17,7 @@ namespace EasySave.Controllers
     {
         private bool isRunning;
         private List<ModelBackup.Project> projects;
-        private ModelBackup modelBackup;
+        private ModelBackup? modelBackup;
         private ModelConfig modelConfig;
 
         /// <summary>
@@ -27,7 +27,6 @@ namespace EasySave.Controllers
         {
             this.isRunning = false;
             this.projects = new List<ModelBackup.Project>();
-            this.modelBackup = new ModelBackup();
             this.modelConfig = new ModelConfig();
         }
 
@@ -45,7 +44,8 @@ namespace EasySave.Controllers
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
-                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.projects = this.modelBackup.FetchProjects();
                 }
             }
             else
@@ -60,7 +60,8 @@ namespace EasySave.Controllers
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
-                            this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.projects = this.modelBackup.FetchProjects();
                         }
                     }
                     else
@@ -94,11 +95,11 @@ namespace EasySave.Controllers
                         break;
                     case 2:
                         View.ClearConsole();
-                        View.ShowMessage("Save backup", "info");
+                        this.SaveProject();
                         break;
                     case 3:
                         View.ClearConsole();
-                        View.ShowMessage("Toggle AutoSave", "info");
+                        this.ToggleAutoSave();
                         break;
                     case 4:
                         View.ClearConsole();
@@ -149,7 +150,7 @@ namespace EasySave.Controllers
 
                 if (this.modelConfig.Load())
                 {
-                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source!, this.modelConfig.Destination!);
+                    this.projects = this.modelBackup!.FetchProjects();
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
                 }
                 else
@@ -161,6 +162,73 @@ namespace EasySave.Controllers
             {
                 View.ShowMessage("Failed to update configuration.", "error");
             }
+        }
+
+        private void DownloadBackup()
+        {
+            View.ShowMessage("Download backup", "info");
+            var projects = this.modelBackup!.FetchProjects("destination");
+            if (projects.Count == 0)
+            {
+                View.ShowMessage("No backup projects found.", "warning");
+                return;
+            }
+
+            int selectedIndex = View.ShowProjectList(projects);
+            string projectName = projects[selectedIndex].Name;
+
+            var state = this.modelBackup.GetBackupState(projectName);
+            state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
+
+            bool success = this.modelBackup.SaveProject(projectName);
+            if (!success)
+            {
+                View.ShowMessage("Failed to download backup.", "error");
+            }
+        }
+
+        private void SaveProject()
+        {
+            View.ShowMessage("Save project", "info");
+            var projects = this.modelBackup!.FetchProjects("source");
+            if (projects.Count == 0)
+            {
+                View.ShowMessage("No source projects found.", "warning");
+                return;
+            }
+
+            List<int> selectedIndices = View.ShowMultipleProjectList(projects);
+            foreach (int index in selectedIndices)
+            {
+                string projectName = projects[index].Name;
+                var state = this.modelBackup.GetBackupState(projectName);
+                state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
+
+                bool success = this.modelBackup.SaveProject(projectName);
+                if (!success)
+                {
+                    View.ShowMessage($"Failed to save backup for project: {projectName}", "error");
+                }
+            }
+        }
+
+        private void ToggleAutoSave()
+        {
+            View.ShowMessage("Toggle AutoSave", "info");
+            var projects = this.modelBackup!.FetchProjects("source");
+            if (projects.Count == 0)
+            {
+                View.ShowMessage("No source projects found.", "warning");
+                return;
+            }
+
+            int selectedIndex = View.ShowProjectList(projects);
+            string projectName = projects[selectedIndex].Name;
+            bool isEnabled = this.modelBackup.ToggleAutoSave(projectName, 900); // 900 seconds = 15 minutes
+            View.ClearConsole();
+            View.ShowMessage(
+                isEnabled ? $"Auto-save enabled for {projectName}" : $"Auto-save disabled for {projectName}",
+                "info");
         }
     }
 }
