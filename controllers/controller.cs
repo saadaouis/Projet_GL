@@ -159,7 +159,7 @@ namespace EasySave.Controllers
         /// <summary>
         /// Allows the user to download a backup version.
         /// </summary>
-        public void DownloadFunction()
+        private void DownloadFunction()
         {
             this.projects = this.modelBackup!.FetchProjects();
             Console.WriteLine(this.projects);
@@ -171,7 +171,7 @@ namespace EasySave.Controllers
 
             int selectedIndex = View.ShowProjectList(this.projects);
             string selectedProject = this.projects[selectedIndex].Name;
-            int projectNumber = int.Parse(selectedProject.Replace("Project", ""));
+            int projectNumber = int.Parse(selectedProject.Replace("Project", string.Empty));
 
             var versionList = this.modelBackup.FetchVersions(projectNumber);
             if (versionList.Count == 0)
@@ -184,6 +184,18 @@ namespace EasySave.Controllers
             View.ShowMessage("Downloading project...", "info");
             this.modelBackup.DownloadVersion(projectNumber, selectedVersion);
             View.ShowMessage("Download complete.", "info");
+            }
+
+        private void DownloadBackup()
+        {
+        }
+
+        private void SaveProject()
+        {
+            View.ShowMessage("Save project", "info");
+            int selectedProjectIndex = View.ShowProjectList(this.projects);
+            ModelBackup.Project selectedProject = this.projects[selectedProjectIndex];
+            this.modelBackup!.SaveProject(selectedProject.Name);
         }
     }
 }

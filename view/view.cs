@@ -57,6 +57,77 @@ namespace EasySave.Views
             Console.ResetColor();
         }
 
+        /// <summary>
+        /// Displays a list of projects and allows the user to select one.
+        /// </summary>
+        /// <param name="projects">The list of projects to display.</param>
+        /// <returns>The index of the selected project.</returns>
+        public static int ShowProjectList(List<ModelBackup.Project> projects)
+        {
+            Console.WriteLine("Select a project :");
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {projects[i].Name}");
+            }
+
+            int selected;
+            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > projects.Count)
+            {
+                Console.WriteLine("Invalid input. Please enter a number between 1 and 5.");
+            }
+
+            return selected - 1;
+        }
+
+        /// <summary>
+        /// Displays a list of projects and allows the user to select multiple projects.
+        /// </summary>
+        /// <param name="projects">The list of projects to display.</param>
+        /// <returns>A list of indices of the selected projects.</returns>
+        public static List<int> ShowMultipleProjectList(List<ModelBackup.Project> projects)
+        {
+            Console.WriteLine("Select projects (comma-separated numbers, e.g., 1,3,5) :");
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {projects[i].Name}");
+            }
+
+            List<int> selectedIndices = new List<int>();
+            bool validInput = false;
+
+            while (!validInput)
+            {
+                string input = Console.ReadLine() ?? string.Empty;
+                selectedIndices.Clear();
+                validInput = true;
+
+                string[] selections = input.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (string selection in selections)
+                {
+                    if (int.TryParse(selection.Trim(), out int index) && index >= 1 && index <= projects.Count)
+                    {
+                        selectedIndices.Add(index - 1);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Invalid input: {selection}. Please enter numbers between 1 and {projects.Count}.");
+                        validInput = false;
+                        break;
+                    }
+                }
+
+                if (validInput && selectedIndices.Count == 0)
+                {
+                    Console.WriteLine("You must select at least one project.");
+                    validInput = false;
+                }
+            }
+
+            return selectedIndices;
+        }
+
         /// <summary> Console.WriteLine with color. </summary>
         /// <param name="message">The message to display.</param>
         /// <param name="severity">The severity of the message. "info", "warning", "error" "text".</param>
@@ -110,28 +181,6 @@ namespace EasySave.Views
         public static void ClearConsole()
         {
             Console.Clear();
-        }
-
-        /// <summary>
-        /// Displays a list of projects.
-        /// </summary>
-        /// <param name="projects">The list of projects to display.</param>
-        public static int ShowProjectList(List<ModelBackup.Project> projects)
-        {
-            Console.WriteLine("Select a project :");
-
-            for (int i = 0; i < projects.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {projects[i].Name}");
-            }
-
-            int selected;
-            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > 5)
-            {
-                Console.WriteLine("Invalid input. Please enter a number between 1 and 5.");
-            }
-
-            return selected - 1;
         }
 
         /// <summary>
