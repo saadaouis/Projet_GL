@@ -63,6 +63,8 @@ namespace EasySave.Controllers
                         {
                             this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                             this.projects = this.modelBackup.FetchProjects();
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.projects = this.modelBackup.FetchProjects();
                         }
                     }
                     else
@@ -258,7 +260,7 @@ namespace EasySave.Controllers
         /// </summary>
         public void downloadFunction()
         {
-            var projectList = this.modelBackup.FetchProjects(this.modelConfig.Source!, this.modelConfig.Destination!);
+            var projectList = this.modelBackup.FetchProjects();
             if (projectList.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");
@@ -278,7 +280,7 @@ namespace EasySave.Controllers
 
             int selectedVersion = View.ShowProjectVersion(versionList);
             View.ShowMessage("Downloading project...", "info");
-            this.modelBackup.DownloadVersion(projectNumber, selectedVersion, this.modelConfig.Source!, this.modelConfig.Destination!);
+            this.modelBackup.DownloadVersion(projectNumber, selectedVersion);
             View.ShowMessage("Download complete.", "info");
         }
     }
