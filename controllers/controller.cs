@@ -260,7 +260,7 @@ namespace EasySave.Controllers
         /// </summary>
         public void downloadFunction()
         {
-            var projectList = this.modelBackup.FetchProjects();
+            var projectList = this.modelBackup!.FetchProjects();
             if (projectList.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");
