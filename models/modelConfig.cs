@@ -108,6 +108,7 @@ namespace EasySave.Models
                 {
                     Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
                 }
+
                 return false;
             }
         }
