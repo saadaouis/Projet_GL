@@ -122,18 +122,14 @@ namespace EasySave.Controllers
         /// </summary>
         private void ModifyConfig()
         {
-            Console.WriteLine("Current Configuration:");
-            Console.WriteLine($"source: {this.modelConfig.Source}");
-            Console.WriteLine($"destination: {this.modelConfig.Destination}");
-            Console.WriteLine($"language: {this.modelConfig.Language}");
-            Console.WriteLine();
+            View.ShowMessage("Current Configuration:", "info");
+            View.ShowMessage($"source: {this.modelConfig.Source}", "info");
+            View.ShowMessage($"destination: {this.modelConfig.Destination}", "info");
+            View.ShowMessage($"language: {this.modelConfig.Language}", "info");
 
-            Console.Write("Enter new source path (leave empty to keep current): ");
-            string newSource = Console.ReadLine() ?? string.Empty;
-            Console.Write("Enter new destination path (leave empty to keep current): ");
-            string newDestination = Console.ReadLine() ?? string.Empty;
-            Console.Write("Enter new language (leave empty to keep current): ");
-            string newLanguage = Console.ReadLine() ?? string.Empty;
+            string newSource = View.ConsoleWriteLine("Enter new source path (leave empty to keep current): ", "info") ?? string.Empty;
+            string newDestination = View.ConsoleWriteLine("Enter new destination path (leave empty to keep current): ", "info") ?? string.Empty;
+            string newLanguage = View.ConsoleWriteLine("Enter new language (leave empty to keep current): ", "info") ?? string.Empty;
 
             string? updatedSource = string.IsNullOrWhiteSpace(newSource) ? this.modelConfig.Source : newSource;
             string? updatedDestination = string.IsNullOrWhiteSpace(newDestination) ? this.modelConfig.Destination : newDestination;
