@@ -260,15 +260,16 @@ namespace EasySave.Controllers
         /// </summary>
         public void downloadFunction()
         {
-            var projectList = this.modelBackup!.FetchProjects();
-            if (projectList.Count == 0)
+            this.projects = this.modelBackup!.FetchProjects();
+            Console.WriteLine(this.projects);
+            if (this.projects.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");
                 return;
             }
 
-            int selectedIndex = View.ShowProjectList(projectList);
-            string selectedProject = projectList[selectedIndex].Name;
+            int selectedIndex = View.ShowProjectList(this.projects);
+            string selectedProject = this.projects[selectedIndex].Name;
             int projectNumber = int.Parse(selectedProject.Replace("Project", ""));
 
             var versionList = this.modelBackup.FetchVersions(projectNumber);

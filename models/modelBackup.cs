@@ -64,6 +64,8 @@ namespace EasySave.Models
             {
                 Console.WriteLine($"Fetching directories from: {this.destinationPath}");
 
+                Console.WriteLine($"Fetching directories from: {destinationPath}");
+
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(path)
                     .Select(dir => new DirectoryInfo(dir))
@@ -107,6 +109,7 @@ namespace EasySave.Models
             Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
         }
+
 
         /// <summary>Download a backup version.</summary>
         /// <param name="projectNumber">The project number.</param>
