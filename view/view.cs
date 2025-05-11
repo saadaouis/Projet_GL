@@ -59,8 +59,8 @@ namespace EasySave.Views
         {
             ShowMessage("Config initialization", "info");
 
-            // Source folder selection
-            string? source = ShowFolderDialog("Select Source Folder");
+            ShowMessage("Select Source Folder", "text");
+            string? source = Console.ReadLine();
             if (string.IsNullOrEmpty(source))
             {
                 ShowMessage("Source folder selection cancelled", "error");
@@ -68,7 +68,8 @@ namespace EasySave.Views
             }
 
             // Destination folder selection
-            string? destination = ShowFolderDialog("Select Destination Folder");
+            ShowMessage("Select Destination Folder", "text");
+            string? destination = Console.ReadLine();
             if (string.IsNullOrEmpty(destination))
             {
                 ShowMessage("Destination folder selection cancelled", "error");
@@ -83,6 +84,10 @@ namespace EasySave.Views
             string? languageChoice = Console.ReadLine();
             string language = languageChoice == "2" ? "Fr" : "En";
 
+            Console.WriteLine(source);
+            Console.WriteLine(destination);
+            Console.WriteLine(language);
+
             return new Dictionary<string, string>
             {
                 { "source", source },
@@ -96,72 +101,5 @@ namespace EasySave.Views
         /// </summary>
         /// <param name="title">The title of the dialog.</param>
         /// <returns>The selected folder path or null if cancelled.</returns>
-        private static string? ShowFolderDialog(string title)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                // Windows implementation using PowerShell
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = $"-command \"Add-Type -AssemblyName System.Windows.Forms; $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog; $folderBrowser.Description = '{title}'; $folderBrowser.ShowNewFolderButton = $true; if($folderBrowser.ShowDialog() -eq 'OK') {{ $folderBrowser.SelectedPath }}\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    string result = process.StandardOutput.ReadToEnd().Trim();
-                    process.WaitForExit();
-                    return string.IsNullOrEmpty(result) ? null : result;
-                }
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                // macOS implementation using osascript
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "osascript",
-                    Arguments = $"-e 'tell application \"System Events\" to set folderPath to choose folder with prompt \"{title}\"'",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    string result = process.StandardOutput.ReadToEnd().Trim();
-                    process.WaitForExit();
-                    return string.IsNullOrEmpty(result) ? null : result;
-                }
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                // Linux implementation using zenity
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "zenity",
-                    Arguments = $"--file-selection --directory --title=\"{title}\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    string result = process.StandardOutput.ReadToEnd().Trim();
-                    process.WaitForExit();
-                    return string.IsNullOrEmpty(result) ? null : result;
-                }
-            }
-
-            // Fallback to console input if dialog fails
-            ShowMessage($"Please enter the {title.ToLower()} path:", "info");
-            return Console.ReadLine();
-        }
     }
 }
