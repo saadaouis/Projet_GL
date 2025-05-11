@@ -3,6 +3,7 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using EasySave.Models;
 using EasySave.Services.Logger;
 using EasySave.Views;
@@ -15,20 +16,12 @@ namespace EasySave.Controllers
     public class Controller
     {
         private bool isRunning = false;
-        private List<ModelBackup.Project> projects;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Controller"/> class.
-        /// </summary>
-        ///
-        public Controller()
-        {
-            this.projects = new List<ModelBackup.Project>();
-        }
+        private List<ModelBackup.Project> projects = new();
+        private ModelBackup modelBackup = new();
 
         /// <summary>
         /// Starts the controller.
-            /// </summary>
+        /// </summary>
         public void Initialization()
         {
             this.isRunning = true;
@@ -39,6 +32,10 @@ namespace EasySave.Controllers
             if (modelConfig.Load())
             {
                 View.ShowMessage("Config loaded", "info");
+                if (!string.IsNullOrEmpty(modelConfig.Source) && !string.IsNullOrEmpty(modelConfig.Destination))
+                {
+                    this.projects = this.modelBackup.FetchProjects(modelConfig.Source, modelConfig.Destination);
+                }
             }
             else
             {
@@ -50,8 +47,10 @@ namespace EasySave.Controllers
                     if (modelConfig.Load())
                     {
                         View.ShowMessage("Config loaded", "info");
-                        ModelBackup modelBackup = new(config["destination"]);
-                        this.projects = modelBackup.FetchProjects();
+                        if (!string.IsNullOrEmpty(modelConfig.Source) && !string.IsNullOrEmpty(modelConfig.Destination))
+                        {
+                            this.projects = this.modelBackup.FetchProjects(modelConfig.Source, modelConfig.Destination);
+                        }
                     }
                     else
                     {
@@ -72,6 +71,15 @@ namespace EasySave.Controllers
                     case 1:
                         View.ClearConsole();
                         View.ShowMessage("Download backup", "info");
+                        Console.WriteLine($"Number of projects: {this.projects.Count}");
+                        foreach (var project in this.projects)
+                        {
+                            Console.WriteLine($"Project: {project.Name}");
+                            Console.WriteLine($"Last Backup: {project.LastBackup}");
+                            Console.WriteLine($"Size: {project.Size} MB");
+                            Console.WriteLine("---");
+                        }
+
                         break;
                     case 2:
                         View.ClearConsole();
