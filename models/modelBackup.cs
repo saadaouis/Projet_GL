@@ -56,7 +56,7 @@ namespace EasySave.Models
 
             try
             {
-                Console.WriteLine($"Fetching directories from: {destinationPath}");
+                Console.WriteLine($"Fetching directories from: {this.destinationPath}");
 
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(path)
@@ -70,7 +70,7 @@ namespace EasySave.Models
                 {
                     Console.WriteLine($"Processing directory: {dir.FullName}");
 
-                try
+                    try
                 {
                     // Calculate directory size
                     double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
@@ -101,7 +101,6 @@ namespace EasySave.Models
             Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
         }
-
 
         /// <summary>Download a backup version.</summary>
         /// <param name="projectNumber">The project number.</param>
@@ -134,7 +133,7 @@ namespace EasySave.Models
         public List<string> FetchVersions(int projectNumber)
         {
             var versions = new List<string>();
-            var projectPath = Path.Combine(sourcePath, $"Project{projectNumber}");
+            var projectPath = Path.Combine(this.sourcePath, $"Project{projectNumber}");
             if (Directory.Exists(projectPath))
             {
                 versions = Directory.GetDirectories(projectPath)
@@ -143,7 +142,7 @@ namespace EasySave.Models
                     .Select(dir => dir.Name)
                     .ToList();
             }
-            
+
             return versions;
         }
 
