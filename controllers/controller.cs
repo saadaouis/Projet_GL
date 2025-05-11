@@ -163,5 +163,17 @@ namespace EasySave.Controllers
                 View.ShowMessage("Failed to update configuration.", "error");
             }
         }
+
+        private void DownloadBackup()
+        {
+        }
+
+        private void SaveProject()
+        {
+            View.ShowMessage("Save project", "info");
+            int selectedProjectIndex = View.ShowProjectList(this.projects);
+            ModelBackup.Project selectedProject = this.projects[selectedProjectIndex];
+            this.modelBackup!.SaveProject(selectedProject.Name);
+        }
     }
 }

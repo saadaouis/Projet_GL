@@ -123,15 +123,13 @@ namespace EasySave.Models
         /// Saves a project with the specified version number.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
-        /// <param name="sourcePath">The source directory path.</param>
-        /// <param name="destinationPath">The destination directory path.</param>
         /// <param name="isAutoSave">Whether this is an auto-save operation.</param>
         /// <returns>True if the save was successful, false otherwise.</returns>
-        public bool SaveProject(string projectName, string sourcePath, string destinationPath, bool isAutoSave = false)
+        public bool SaveProject(string projectName, bool isAutoSave = false)
         {
             try
             {
-                string projectDir = Path.Combine(destinationPath, projectName);
+                string projectDir = Path.Combine(this.destinationPath, projectName);
                 string saveTypeDir = isAutoSave ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
 
@@ -143,7 +141,7 @@ namespace EasySave.Models
                 string versionDir = Path.Combine(saveDir, $"V{nextVersion}");
 
                 // Copy the project
-                CopyDirectoryRecursive(sourcePath, versionDir);
+                CopyDirectoryRecursive(this.sourcePath, versionDir);
 
                 return true;
             }
@@ -157,29 +155,34 @@ namespace EasySave.Models
         /// <summary>
         /// Starts auto-save for a project.
         /// </summary>
-        /// <param name="projectName">The name of the project.</param>
+        /// <param name="projects">The list of projects to auto-save.</param>
         /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        public void StartAutoSave(string projectName, int intervalSeconds)
+        public void StartAutoSave(List<ModelBackup.Project> projects, int intervalSeconds)
         {
-            if (autoSaveTasks.ContainsKey(projectName))
+            foreach (var project in projects)
             {
-                StopAutoSave(projectName);
-            }
-
-            var cts = new CancellationTokenSource();
-            autoSaveTasks[projectName] = cts;
-
-            Task.Run(async () =>
-            {
-                while (!cts.Token.IsCancellationRequested)
+                if (this.autoSaveTasks.ContainsKey(project.Name))
                 {
-                    await Task.Delay(intervalSeconds * 1000, cts.Token);
-                    if (!cts.Token.IsCancellationRequested)
-                    {
-                        SaveProject(projectName, sourcePath, destinationPath, true);
-                    }
+                    this.StopAutoSave(project.Name);
                 }
-            }, cts.Token);
+
+                var cts = new CancellationTokenSource();
+                this.autoSaveTasks[project.Name] = cts;
+
+                Task.Run(
+                async () =>
+                {
+                    while (!cts.Token.IsCancellationRequested)
+                    {
+                        await Task.Delay(intervalSeconds * 1000, cts.Token);
+                        if (!cts.Token.IsCancellationRequested)
+                        {
+                            this.SaveProject(project.Name, true);
+                        }
+                    }
+            },
+                cts.Token);
+            }
         }
 
         /// <summary>
