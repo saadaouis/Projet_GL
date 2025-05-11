@@ -150,7 +150,7 @@ namespace EasySave.Controllers
 
                 if (this.modelConfig.Load())
                 {
-                    this.projects = this.modelBackup.FetchProjects();
+                    this.projects = this.modelBackup!.FetchProjects();
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
                 }
                 else
@@ -169,7 +169,7 @@ namespace EasySave.Controllers
         /// </summary>
         public void downloadFunction()
         {
-            var projectList = this.modelBackup.FetchProjects();
+            var projectList = this.modelBackup!.FetchProjects();
             if (projectList.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");

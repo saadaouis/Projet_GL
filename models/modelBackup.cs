@@ -30,6 +30,12 @@ namespace EasySave.Models
             this.destinationPath = destinationPath;
         }
 
+        public ModelBackup()
+        {
+            this.sourcePath = string.Empty;
+            this.destinationPath = string.Empty;
+        }
+
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
         /// </summary>
