@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using EasySave.Models;
 
 namespace EasySave.Views
 {
@@ -113,6 +114,51 @@ namespace EasySave.Views
         public static void ClearConsole()
         {
             Console.Clear();
+        }
+
+        /// <summary>
+        /// Displays a list of projects.
+        /// </summary>
+        /// <param name="projects">The list of projects to display.</param>
+        public static int ShowProjectList(List<ModelBackup.Project> projects)
+        {
+            Console.WriteLine("Select a project :");
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {projects[i].Name}");
+            }
+
+            int selected;
+            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > 5)
+            {
+                Console.WriteLine("Invalid input. Please enter a number between 1 and 5.");
+            }
+
+            return selected - 1;
+        }
+
+        /// <summary>
+        /// Displays a list of versions.
+        /// </summary>
+        /// <param name="versions">The list of versions to display.</param>
+        /// <returns>The choice of the user.</returns>
+        public static int ShowProjectVersion(List<string> versions)
+        {
+            Console.WriteLine("Select a version :");
+
+            for (int i = 0; i < versions.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {versions[i]}");
+            }
+
+            int selected;
+            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > 5)
+            {
+                Console.WriteLine("Invalid input. Please enter a number between 1 and 5.");
+            }
+
+            return selected - 1;
         }
 
         /// <summary>

@@ -65,6 +65,31 @@ namespace EasySave.Models
             return projects;
         }
 
+        /// <summary>Download a backup version.</summary>
+        /// <param name="project_number">The project number.</param>
+        /// <param name="version_number">The version number.</param>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destinationPath">The destination path.</param>
+        public void DownloadVersion(int project_number, int version_number, string sourcePath, string destinationPath)
+        {
+            string backup_path = Path.Combine(sourcePath, $"Project{project_number}", $"Version{version_number}");
+            string active_path = Path.Combine(destinationPath, $"Project{project_number}");
+
+            if (Directory.Exists(backup_path)) // Ensure the source directory exists
+            {
+                Directory.CreateDirectory(active_path); // Create the target directory
+                foreach (var file in Directory.GetFiles(backup_path))
+                {
+                    var file_name = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(active_path, file_name), overwrite: true);
+                }
+            }
+            else
+            {
+                throw new Exception("Backup version not found");
+            }
+        }
+
         /// <summary>
         /// Calculates the total size of a directory in bytes.
         /// </summary>
