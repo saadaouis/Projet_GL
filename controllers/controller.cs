@@ -17,7 +17,7 @@ namespace EasySave.Controllers
     {
         private bool isRunning;
         private List<ModelBackup.Project> projects;
-        private ModelBackup modelBackup;
+        private ModelBackup? modelBackup;
         private ModelConfig modelConfig;
 
         /// <summary>
@@ -27,7 +27,6 @@ namespace EasySave.Controllers
         {
             this.isRunning = false;
             this.projects = new List<ModelBackup.Project>();
-            this.modelBackup = new ModelBackup();
             this.modelConfig = new ModelConfig();
         }
 
@@ -45,7 +44,8 @@ namespace EasySave.Controllers
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
-                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.projects = this.modelBackup.FetchProjects();
                 }
             }
             else
@@ -60,7 +60,8 @@ namespace EasySave.Controllers
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
-                            this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.projects = this.modelBackup.FetchProjects();
                         }
                     }
                     else
@@ -149,7 +150,7 @@ namespace EasySave.Controllers
 
                 if (this.modelConfig.Load())
                 {
-                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source!, this.modelConfig.Destination!);
+                    this.projects = this.modelBackup.FetchProjects();
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
                 }
                 else
@@ -168,7 +169,7 @@ namespace EasySave.Controllers
         /// </summary>
         public void downloadFunction()
         {
-            var projectList = this.modelBackup.FetchProjects(this.modelConfig.Source!, this.modelConfig.Destination!);
+            var projectList = this.modelBackup.FetchProjects();
             if (projectList.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");
@@ -188,7 +189,7 @@ namespace EasySave.Controllers
 
             int selectedVersion = View.ShowProjectVersion(versionList);
             View.ShowMessage("Downloading project...", "info");
-            this.modelBackup.DownloadVersion(projectNumber, selectedVersion, this.modelConfig.Source!, this.modelConfig.Destination!);
+            this.modelBackup.DownloadVersion(projectNumber, selectedVersion);
             View.ShowMessage("Download complete.", "info");
         }
     }

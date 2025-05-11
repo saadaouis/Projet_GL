@@ -15,6 +15,8 @@ namespace EasySave.Models
     public class ModelBackup
     {
         private const int MaxProjects = 5;
+        private string sourcePath;
+        private string destinationPath;
 
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
@@ -22,7 +24,17 @@ namespace EasySave.Models
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
         /// <returns>A list of projects with their details.</returns>
-        public List<Project> FetchProjects(string sourcePath, string destinationPath)
+        public ModelBackup(string sourcePath, string destinationPath)
+        {
+            this.sourcePath = sourcePath;
+            this.destinationPath = destinationPath;
+        }
+
+        /// <summary>
+        /// Fetches the most recent projects from the filesystem.
+        /// </summary>
+        /// <returns>A list of projects with their details.</returns>
+        public List<Project> FetchProjects()
         {
             var projects = new List<Project>();
 
@@ -68,9 +80,7 @@ namespace EasySave.Models
         /// <summary>Download a backup version.</summary>
         /// <param name="project_number">The project number.</param>
         /// <param name="version_number">The version number.</param>
-        /// <param name="sourcePath">The source path.</param>
-        /// <param name="destinationPath">The destination path.</param>
-        public void DownloadVersion(int project_number, int version_number, string sourcePath, string destinationPath)
+        public void DownloadVersion(int project_number, int version_number)
         {
             string backup_path = Path.Combine(sourcePath, $"Project{project_number}", $"Version{version_number}");
             string active_path = Path.Combine(destinationPath, $"Project{project_number}");
