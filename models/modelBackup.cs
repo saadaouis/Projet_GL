@@ -84,20 +84,20 @@ namespace EasySave.Models
         }
 
         /// <summary>Download a backup version.</summary>
-        /// <param name="project_number">The project number.</param>
-        /// <param name="version_number">The version number.</param>
-        public void DownloadVersion(int project_number, int version_number)
+        /// <param name="projectNumber">The project number.</param>
+        /// <param name="versionNumber">The version number.</param>
+        public void DownloadVersion(int projectNumber, int versionNumber)
         {
-            string backup_path = Path.Combine(sourcePath, $"Project{project_number}", $"Version{version_number}");
-            string active_path = Path.Combine(destinationPath, $"Project{project_number}");
+            string backupPath = Path.Combine(this.sourcePath, $"Project{projectNumber}", $"Version{versionNumber}");
+            string activePath = Path.Combine(this.destinationPath, $"Project{projectNumber}");
 
-            if (Directory.Exists(backup_path)) // Ensure the source directory exists
+            if (Directory.Exists(backupPath)) // Ensure the source directory exists
             {
-                Directory.CreateDirectory(active_path); // Create the target directory
-                foreach (var file in Directory.GetFiles(backup_path))
+                Directory.CreateDirectory(activePath); // Create the target directory
+                foreach (var file in Directory.GetFiles(backupPath))
                 {
-                    var file_name = Path.GetFileName(file);
-                    File.Copy(file, Path.Combine(active_path, file_name), overwrite: true);
+                    var fileName = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(activePath, fileName), overwrite: true);
                 }
             }
             else
@@ -109,15 +109,15 @@ namespace EasySave.Models
         /// <summary>
         /// Fetches the versions of a project.
         /// </summary>
-        /// <param name="project_number">The project number.</param>
+        /// <param name="projectNumber">The project number.</param>
         /// <returns>A list of versions.</returns>
-        public List<string> FetchVersions(int project_number)
+        public List<string> FetchVersions(int projectNumber)
         {
             var versions = new List<string>();
-            var project_path = Path.Combine(sourcePath, $"Project{project_number}");
-            if (Directory.Exists(project_path))
+            var projectPath = Path.Combine(sourcePath, $"Project{projectNumber}");
+            if (Directory.Exists(projectPath))
             {
-                versions = Directory.GetDirectories(project_path)
+                versions = Directory.GetDirectories(projectPath)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Select(dir => dir.Name)

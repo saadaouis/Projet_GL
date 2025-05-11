@@ -167,7 +167,7 @@ namespace EasySave.Controllers
         /// <summary>
         /// Allows the user to download a backup version.
         /// </summary>
-        public void downloadFunction()
+        public void DownloadFunction()
         {
             var projectList = this.modelBackup!.FetchProjects();
             if (projectList.Count == 0)

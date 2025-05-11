@@ -28,10 +28,6 @@ namespace EasySave.Views
         /// <summary>
         /// Initializes a new instance of the <see cref="View"/> class.
         /// </summary>
-        public View()
-        {
-        }
-
         /// <summary>
         /// Displays a message.
         /// </summary>
