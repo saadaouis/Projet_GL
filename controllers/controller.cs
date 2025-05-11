@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using EasySave.Models;
 using EasySave.Services.Logger;
 using EasySave.Views;
@@ -82,16 +83,7 @@ namespace EasySave.Controllers
                 {
                     case 1:
                         View.ClearConsole();
-                        View.ShowMessage("Download backup", "info");
-                        Console.WriteLine($"Number of projects: {this.projects.Count}");
-                        foreach (var project in this.projects)
-                        {
-                            Console.WriteLine($"Project: {project.Name}");
-                            Console.WriteLine($"Last Backup: {project.LastBackup}");
-                            Console.WriteLine($"Size: {project.Size} MB");
-                            Console.WriteLine("---");
-                        }
-
+                        this.DownloadFunction();
                         break;
                     case 2:
                         View.ClearConsole();
@@ -169,15 +161,16 @@ namespace EasySave.Controllers
         /// </summary>
         public void DownloadFunction()
         {
-            var projectList = this.modelBackup!.FetchProjects();
-            if (projectList.Count == 0)
+            this.projects = this.modelBackup!.FetchProjects();
+            Console.WriteLine(this.projects);
+            if (this.projects.Count == 0)
             {
                 View.ShowMessage("No projects available.", "error");
                 return;
             }
 
-            int selectedIndex = View.ShowProjectList(projectList);
-            string selectedProject = projectList[selectedIndex].Name;
+            int selectedIndex = View.ShowProjectList(this.projects);
+            string selectedProject = this.projects[selectedIndex].Name;
             int projectNumber = int.Parse(selectedProject.Replace("Project", ""));
 
             var versionList = this.modelBackup.FetchVersions(projectNumber);

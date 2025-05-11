@@ -40,48 +40,59 @@ namespace EasySave.Models
         /// Fetches the most recent projects from the filesystem.
         /// </summary>
         /// <returns>A list of projects with their details.</returns>
-        public List<Project> FetchProjects()
+        public List<ModelBackup.Project> FetchProjects()
         {
             var projects = new List<Project>();
+            Console.WriteLine("Starting FetchProjects()...");
 
             try
             {
+                Console.WriteLine($"Fetching directories from: {destinationPath}");
+
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(destinationPath)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Take(MaxProjects);
 
+                Console.WriteLine($"Found {directories.Count()} directories.");
+
                 foreach (var dir in directories)
                 {
-                    try
-                    {
-                        // Calculate directory size
-                        double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
+                    Console.WriteLine($"Processing directory: {dir.FullName}");
 
-                        // Create project object
-                        var project = new Project
-                        {
-                            Name = dir.Name,
-                            LastBackup = dir.LastWriteTime,
-                            Size = Math.Round(sizeInMB, 2),
-                        };
+                try
+                {
+                    // Calculate directory size
+                    double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
+                    Console.WriteLine($"Size of {dir.Name}: {sizeInMB:F2} MB");
 
-                        projects.Add(project);
-                    }
-                    catch (Exception ex)
+                    // Create project object
+                    var project = new Project
                     {
-                        Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
-                    }
+                        Name = dir.Name,
+                        LastBackup = dir.LastWriteTime,
+                        Size = Math.Round(sizeInMB, 2),
+                    };
+
+                    projects.Add(project);
+                    Console.WriteLine($"Project added: {project.Name}, {project.LastBackup}, {project.Size} MB");
                 }
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
+                }
+    }
+}
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching projects: {ex.Message}");
             }
 
+            Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
         }
+
 
         /// <summary>Download a backup version.</summary>
         /// <param name="projectNumber">The project number.</param>
