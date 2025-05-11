@@ -93,6 +93,7 @@ namespace EasySave.Views
             };
         }
 
+        public static 
         /// <summary>
         /// Validates if a path exists and is a directory.
         /// </summary>

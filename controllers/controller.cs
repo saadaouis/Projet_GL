@@ -35,26 +35,34 @@ namespace EasySave.Controllers
             ModelConfig modelConfig = new();
             ModelBackup modelBackup = new();
 
-            while (this.isRunning)
+            if (modelConfig.Load())
             {
-                if (modelConfig.Load())
+                View.ShowMessage("Config loaded", "info");
+            }
+            else
+            {
+                View.ShowMessage("No config found", "error");
+                Dictionary<string, string> config = view.InitializeForm();
+                if (modelConfig.Save(config))
                 {
-                    View.ShowMessage("Config loaded", "info");
-                }
-                else
-                {
-                    View.ShowMessage("No config found", "error");
-                    Dictionary<string, string> config = view.InitializeForm();
-                    if (modelConfig.Save(config))
+                    View.ShowMessage("Config saved", "info");
+                    if (modelConfig.Load())
                     {
-                        View.ShowMessage("Config saved", "info");
+                        View.ShowMessage("Config loaded", "info");
                     }
                     else
                     {
-                        View.ShowMessage("Failed to save config", "error");
+                        View.ShowMessage("Failed to load config", "error");
                     }
                 }
+                else
+                {
+                    View.ShowMessage("Failed to save config", "error");
+                }
+            }
 
+            while (this.isRunning)
+            {
                 this.isRunning = false;
             }
         }
