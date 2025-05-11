@@ -71,6 +71,13 @@ namespace EasySave.Models
         {
             try
             {
+                // Ensure the directory exists
+                string? directoryPath = Path.GetDirectoryName(ConfigPath);
+                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
                 string jsonString = JsonSerializer.Serialize(config, JsonOptions);
                 File.WriteAllText(ConfigPath, jsonString);
                 return true;

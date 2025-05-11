@@ -45,8 +45,16 @@ namespace EasySave.Controllers
                 {
                     View.ShowMessage("No config found", "error");
                     Dictionary<string, string> config = view.InitializeForm();
-                    modelConfig.Save(config);
+                    if (modelConfig.Save(config))
+                    {
+                        View.ShowMessage("Config saved", "info");
+                    }
+                    else
+                    {
+                        View.ShowMessage("Failed to save config", "error");
+                    }
                 }
+
                 this.isRunning = false;
             }
         }

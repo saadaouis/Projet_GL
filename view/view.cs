@@ -52,11 +52,53 @@ namespace EasySave.Views
         }
 
         /// <summary>
+        /// Initializes the configuration form.
+        /// </summary>
+        /// <returns>A dictionary containing the configuration values.</returns>
+        public Dictionary<string, string> InitializeForm()
+        {
+            ShowMessage("Config initialization", "info");
+
+            // Source folder selection
+            string? source;
+            do
+            {
+                ShowMessage("Enter Source Folder path:", "text");
+                source = Console.ReadLine();
+            }
+            while (!IsValidDirectory(source));
+
+            // Destination folder selection
+            string? destination;
+            do
+            {
+                ShowMessage("Enter Destination Folder path:", "text");
+                destination = Console.ReadLine();
+            }
+            while (!IsValidDirectory(destination));
+
+            // Language selection
+            ShowMessage("\nSelect language / Choisir la langue:", "info");
+            ShowMessage("1) English", "text");
+            ShowMessage("2) Français", "text");
+
+            string? languageChoice = Console.ReadLine();
+            string language = languageChoice == "2" ? "Fr" : "En";
+
+            return new Dictionary<string, string>
+            {
+                { "source", source ?? string.Empty },
+                { "destination", destination ?? string.Empty },
+                { "language", language },
+            };
+        }
+
+        /// <summary>
         /// Validates if a path exists and is a directory.
         /// </summary>
         /// <param name="path">The path to validate.</param>
         /// <returns>True if the path is valid, false otherwise.</returns>
-        private static bool IsValidDirectory(string path)
+        private static bool IsValidDirectory(string? path)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -71,46 +113,6 @@ namespace EasySave.Views
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Initializes the configuration form.
-        /// </summary>
-        /// <returns>A dictionary containing the configuration values.</returns>
-        public Dictionary<string, string> InitializeForm()
-        {
-            ShowMessage("Config initialization", "info");
-
-            // Source folder selection
-            string? source;
-            do
-            {
-                ShowMessage("Enter Source Folder path:", "text");
-                source = Console.ReadLine();
-            } while (!IsValidDirectory(source));
-
-            // Destination folder selection
-            string? destination;
-            do
-            {
-                ShowMessage("Enter Destination Folder path:", "text");
-                destination = Console.ReadLine();
-            } while (!IsValidDirectory(destination));
-
-            // Language selection
-            ShowMessage("\nSelect language / Choisir la langue:", "info");
-            ShowMessage("1) English", "text");
-            ShowMessage("2) Français", "text");
-
-            string? languageChoice = Console.ReadLine();
-            string language = languageChoice == "2" ? "Fr" : "En";
-
-            return new Dictionary<string, string>
-            {
-                { "source", source },
-                { "destination", destination },
-                { "language", language },
-            };
         }
     }
 }
