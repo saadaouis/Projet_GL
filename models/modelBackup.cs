@@ -133,11 +133,126 @@ namespace EasySave.Models
         }
 
         /// <summary>
+        /// Gets the next version number for a project.
+        /// </summary>
+        private static (int major, int minor) GetNextVersionNumber(string projectDir, bool isAutoSave)
+        {
+            string backupsDir = Path.Combine(projectDir, "backups");
+            string updatesDir = Path.Combine(projectDir, "updates");
+
+            // Get latest major version from backups
+            int latestMajor = 0;
+            if (Directory.Exists(backupsDir))
+            {
+                var backupVersions = Directory.GetDirectories(backupsDir)
+                    .Select(dir => Path.GetFileName(dir))
+                    .Where(name => name.StartsWith("V"))
+                    .Select(name => int.TryParse(name[1..], out int num) ? num : 0)
+                    .ToList();
+
+                if (backupVersions.Any())
+                {
+                    latestMajor = backupVersions.Max();
+                }
+            }
+
+            // Get latest minor version from updates
+            int latestMinor = 0;
+            if (Directory.Exists(updatesDir))
+            {
+                var updateVersions = Directory.GetDirectories(updatesDir)
+                    .Select(dir => Path.GetFileName(dir))
+                    .Where(name => name.StartsWith($"V{latestMajor}."))
+                    .Select(name => int.TryParse(name.Split('.')[1], out int num) ? num : 0)
+                    .ToList();
+
+                if (updateVersions.Any())
+                {
+                    latestMinor = updateVersions.Max();
+                }
+            }
+
+            if (isAutoSave)
+            {
+                return (latestMajor, latestMinor + 1);
+            }
+            else
+            {
+                return (latestMajor + 1, 0);
+            }
+        }
+
+        /// <summary>
+        /// Copies only modified files from source to destination.
+        /// </summary>
+        private static void CopyModifiedFiles(string sourceDir, string destDir, string lastBackupDir)
+        {
+            Directory.CreateDirectory(destDir);
+
+            // Get all files from source directory
+            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f))
+                .ToList();
+
+            foreach (var sourceFile in sourceFiles)
+            {
+                // Get relative path from source directory
+                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
+                string destFile = Path.Combine(destDir, relativePath);
+                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
+
+                // Create destination directory if it doesn't exist
+                Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+
+                // Check if file is modified compared to last backup
+                bool shouldCopy = true;
+                if (File.Exists(lastBackupFile))
+                {
+                    var lastBackupInfo = new FileInfo(lastBackupFile);
+                    shouldCopy = sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
+                               sourceFile.Length != lastBackupInfo.Length;
+                }
+
+                if (shouldCopy)
+                {
+                    File.Copy(sourceFile.FullName, destFile, true);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if there are any modified files compared to the last backup.
+        /// </summary>
+        private static bool HasModifiedFiles(string sourceDir, string lastBackupDir)
+        {
+            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f))
+                .ToList();
+
+            foreach (var sourceFile in sourceFiles)
+            {
+                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
+                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
+
+                if (!File.Exists(lastBackupFile))
+                {
+                    return true; // New file found
+                }
+
+                var lastBackupInfo = new FileInfo(lastBackupFile);
+                if (sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
+                    sourceFile.Length != lastBackupInfo.Length)
+                {
+                    return true; // Modified file found
+                }
+            }
+
+            return false; // No changes found
+        }
+
+        /// <summary>
         /// Saves a project with the specified version number.
         /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="isAutoSave">Whether this is an auto-save operation.</param>
-        /// <returns>True if the save was successful, false otherwise.</returns>
         public bool SaveProject(string projectName, bool isAutoSave = false)
         {
             try
@@ -150,12 +265,53 @@ namespace EasySave.Models
                 // Create directories if they don't exist
                 Directory.CreateDirectory(saveDir);
 
-                // Get the next version number
-                int nextVersion = GetNextVersionNumber(saveDir, isAutoSave);
-                string versionDir = Path.Combine(saveDir, $"V{nextVersion}");
+                if (isAutoSave)
+                {
+                    // For auto-save, find the latest backup directory
+                    string backupsDir = Path.Combine(projectDir, "backups");
+                    string lastBackupDir = string.Empty;
+                    
+                    if (Directory.Exists(backupsDir))
+                    {
+                        var backupDirs = Directory.GetDirectories(backupsDir)
+                            .Select(dir => new DirectoryInfo(dir))
+                            .OrderByDescending(dir => dir.LastWriteTime)
+                            .ToList();
 
-                // Copy the project
-                CopyDirectoryRecursive(sourceDirPath, versionDir);
+                        if (backupDirs.Any())
+                        {
+                            lastBackupDir = backupDirs.First().FullName;
+                        }
+                    }
+
+                    // Check if there are any changes before creating a new update
+                    if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
+                    {
+                        return true; // No changes, no need to create a new update
+                    }
+
+                    // Get the next version number
+                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
+                    string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
+
+                    // Copy only modified files
+                    if (!string.IsNullOrEmpty(lastBackupDir))
+                    {
+                        CopyModifiedFiles(sourceDirPath, versionDir, lastBackupDir);
+                    }
+                    else
+                    {
+                        // If no backup exists, copy everything
+                        CopyDirectoryRecursive(sourceDirPath, versionDir);
+                    }
+                }
+                else
+                {
+                    // For manual backups, copy everything
+                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
+                    string versionDir = Path.Combine(saveDir, $"V{major}");
+                    CopyDirectoryRecursive(sourceDirPath, versionDir);
+                }
 
                 return true;
             }
@@ -210,30 +366,6 @@ namespace EasySave.Models
                 cts.Cancel();
                 this.autoSaveTasks.Remove(projectName);
             }
-        }
-
-        /// <summary>
-        /// Gets the next version number for a project.
-        /// </summary>
-        private static int GetNextVersionNumber(string saveDir, bool isAutoSave)
-        {
-            if (!Directory.Exists(saveDir))
-            {
-                return 1;
-            }
-
-            var existingVersions = Directory.GetDirectories(saveDir)
-                .Select(dir => Path.GetFileName(dir))
-                .Where(name => name.StartsWith("V"))
-                .Select(name => int.TryParse(name[1..], out int num) ? num : 0)
-                .ToList();
-
-            if (!existingVersions.Any())
-            {
-                return 1;
-            }
-
-            return existingVersions.Max() + 1;
         }
 
         /// <summary>

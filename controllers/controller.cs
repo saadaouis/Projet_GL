@@ -99,7 +99,7 @@ namespace EasySave.Controllers
                         break;
                     case 3:
                         View.ClearConsole();
-                        View.ShowMessage("Toggle AutoSave", "info");
+                        this.ToggleAutoSave();
                         break;
                     case 4:
                         View.ClearConsole();
@@ -176,6 +176,22 @@ namespace EasySave.Controllers
             ModelBackup.Project selectedProject = projects[selectedProjectIndex];
             this.modelBackup!.SaveProject(selectedProject.Name);
             View.ShowMessage("Project saved", "info");
+        }
+
+        private void ToggleAutoSave()
+        {
+            View.ShowMessage("Toggle AutoSave", "info");
+            var projects = this.modelBackup!.FetchProjects("source");
+            List<int> selectedProjectIndexes = View.ShowMultipleProjectList(projects);
+            List<ModelBackup.Project> selectedProjects = new List<ModelBackup.Project>();
+            foreach (var projectIndex in selectedProjectIndexes)
+            {
+                ModelBackup.Project selectedProject = projects[projectIndex];
+                selectedProjects.Add(selectedProject);
+            }
+
+            this.modelBackup!.StartAutoSave(selectedProjects, 10);
+            View.ShowMessage("AutoSave toggled", "info");
         }
     }
 }
