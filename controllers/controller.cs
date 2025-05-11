@@ -11,45 +11,56 @@ using EasySave.Views;
 namespace EasySave.Controllers
 {
     /// <summary>
-    /// Controller class.
+    /// Controller class that manages the application flow and user interactions.
     /// </summary>
     public class Controller
     {
-        private bool isRunning = false;
-        private List<ModelBackup.Project> projects = new();
-        private ModelBackup modelBackup = new();
-        private ModelConfig modelConfig = new();
-        private View view = new();
-        private ILogger logger = new ConsoleLogger();
+        private bool isRunning;
+        private List<ModelBackup.Project> projects;
+        private ModelBackup modelBackup;
+        private ModelConfig modelConfig;
 
         /// <summary>
-        /// Starts the controller.
+        /// Initializes a new instance of the <see cref="Controller"/> class.
+        /// </summary>
+        public Controller()
+        {
+            this.isRunning = false;
+            this.projects = new List<ModelBackup.Project>();
+            this.modelBackup = new ModelBackup();
+            this.modelConfig = new ModelConfig();
+        }
+
+        /// <summary>
+        /// Starts the controller and initializes the application.
         /// </summary>
         public void Initialization()
         {
             this.isRunning = true;
+            ILogger logger = new ConsoleLogger();
+            View view = new View();
 
             if (this.modelConfig.Load())
             {
                 View.ShowMessage("Config loaded", "info");
-                if (!string.IsNullOrEmpty(modelConfig.Source) && !string.IsNullOrEmpty(modelConfig.Destination))
+                if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
-                    this.projects = this.modelBackup.FetchProjects(modelConfig.Source, modelConfig.Destination);
+                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
                 }
             }
             else
             {
                 View.ShowMessage("No config found", "error");
                 Dictionary<string, string> config = view.InitializeForm();
-                if (modelConfig.Save(config))
+                if (this.modelConfig.Save(config))
                 {
                     View.ShowMessage("Config saved", "info");
-                    if (modelConfig.Load())
+                    if (this.modelConfig.Load())
                     {
                         View.ShowMessage("Config loaded", "info");
-                        if (!string.IsNullOrEmpty(modelConfig.Source) && !string.IsNullOrEmpty(modelConfig.Destination))
+                        if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
-                            this.projects = this.modelBackup.FetchProjects(modelConfig.Source, modelConfig.Destination);
+                            this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source, this.modelConfig.Destination);
                         }
                     }
                     else
@@ -79,30 +90,25 @@ namespace EasySave.Controllers
                             Console.WriteLine($"Size: {project.Size} MB");
                             Console.WriteLine("---");
                         }
-                        break;
 
+                        break;
                     case 2:
                         View.ClearConsole();
                         View.ShowMessage("Save backup", "info");
-                        // À compléter selon ta logique métier
                         break;
-
                     case 3:
                         View.ClearConsole();
                         View.ShowMessage("Toggle AutoSave", "info");
-                        // À compléter selon ta logique métier
                         break;
-
                     case 4:
-                       
-                        ModifyConfig();
+                        View.ClearConsole();
+                        View.ShowMessage("Modify config", "info");
+                        this.ModifyConfig();
                         break;
-
                     case 5:
                         View.ShowMessage("Exit", "info");
                         this.isRunning = false;
                         break;
-
                     default:
                         View.ClearConsole();
                         View.ShowMessage("Invalid choice", "error");
@@ -117,31 +123,36 @@ namespace EasySave.Controllers
         private void ModifyConfig()
         {
             Console.WriteLine("Current Configuration:");
-            Console.WriteLine($"Source: {modelConfig.Source}");
-            Console.WriteLine($"Destination: {modelConfig.Destination}");
+            Console.WriteLine($"source: {this.modelConfig.Source}");
+            Console.WriteLine($"destination: {this.modelConfig.Destination}");
+            Console.WriteLine($"language: {this.modelConfig.Language}");
             Console.WriteLine();
 
             Console.Write("Enter new source path (leave empty to keep current): ");
-            string newSource = Console.ReadLine();
+            string newSource = Console.ReadLine() ?? string.Empty;
             Console.Write("Enter new destination path (leave empty to keep current): ");
-            string newDestination = Console.ReadLine();
+            string newDestination = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter new language (leave empty to keep current): ");
+            string newLanguage = Console.ReadLine() ?? string.Empty;
 
-            string updatedSource = string.IsNullOrWhiteSpace(newSource) ? modelConfig.Source : newSource;
-            string updatedDestination = string.IsNullOrWhiteSpace(newDestination) ? modelConfig.Destination : newDestination;
+            string? updatedSource = string.IsNullOrWhiteSpace(newSource) ? this.modelConfig.Source : newSource;
+            string? updatedDestination = string.IsNullOrWhiteSpace(newDestination) ? this.modelConfig.Destination : newDestination;
+            string? updatedLanguage = string.IsNullOrWhiteSpace(newLanguage) ? this.modelConfig.Language : newLanguage;
 
             var newConfig = new Dictionary<string, string>
             {
-                { "Source", updatedSource },
-                { "Destination", updatedDestination }
+                { "source", updatedSource ?? string.Empty },
+                { "destination", updatedDestination ?? string.Empty },
+                { "language", updatedLanguage ?? "En" },
             };
 
-            if (modelConfig.Save(newConfig))
+            if (this.modelConfig.Save(newConfig))
             {
                 View.ShowMessage("Configuration updated successfully.", "info");
 
-                if (modelConfig.Load())
+                if (this.modelConfig.Load())
                 {
-                    this.projects = this.modelBackup.FetchProjects(modelConfig.Source, modelConfig.Destination);
+                    this.projects = this.modelBackup.FetchProjects(this.modelConfig.Source ?? string.Empty, this.modelConfig.Destination ?? string.Empty);
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
                 }
                 else

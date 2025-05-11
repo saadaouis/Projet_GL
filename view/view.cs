@@ -130,9 +130,9 @@ namespace EasySave.Views
 
             return new Dictionary<string, string>
             {
-                { "source", source ?? string.Empty },
-                { "destination", destination ?? string.Empty },
-                { "language", language },
+                { "Source", source ?? string.Empty },
+                { "Destination", destination ?? string.Empty },
+                { "Language", language },
             };
         }
 
