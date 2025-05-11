@@ -67,15 +67,19 @@ namespace EasySave.Controllers
                 switch (choice)
                 {
                     case 1:
+                        View.ClearConsole();
                         View.ShowMessage("Download backup", "info");
                         break;
                     case 2:
+                        View.ClearConsole();
                         View.ShowMessage("Save backup", "info");
                         break;
                     case 3:
+                        View.ClearConsole();
                         View.ShowMessage("Toogle AutoSave", "info");
                         break;
                     case 4:
+                        View.ClearConsole();
                         View.ShowMessage("Modify config", "info");
                         break;
                     case 5:
@@ -83,6 +87,7 @@ namespace EasySave.Controllers
                         this.isRunning = false;
                         break;
                     default:
+                        View.ClearConsole();
                         View.ShowMessage("Invalid choice", "error");
                         break;
                 }
