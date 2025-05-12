@@ -2,11 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
 using EasySave.Models;
 
 namespace EasySave.Views

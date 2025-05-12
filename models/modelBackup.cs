@@ -2,12 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using EasySave.Services.Logger;
 
 namespace EasySave.Models

@@ -2,10 +2,7 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.IO;
 using System.Text.Json;
-using System.Collections.Generic;
 
 namespace EasySave.Services.Logger
 {
@@ -27,7 +24,7 @@ namespace EasySave.Services.Logger
         }
 
         /// <summary>
-        /// Gets or sets whether the logger is enabled.
+        /// Gets or sets a value indicating whether gets or sets whether the logger is enabled.
         /// </summary>
         public bool IsEnabled
         {
@@ -42,19 +39,22 @@ namespace EasySave.Services.Logger
         /// <param name="severity">The severity level of the message.</param>
         public void Log(string message, string severity)
         {
-            if (!this.isEnabled) return;
+            if (!this.isEnabled)
+            {
+                return;
+            }
 
             var logEntry = new LogEntry
             {
                 Timestamp = DateTime.Now,
                 Severity = severity,
-                Message = message
+                Message = message,
             };
 
             try
             {
                 List<LogEntry> entries = new List<LogEntry>();
-                
+
                 // Read existing entries if file exists
                 if (File.Exists(this.logFilePath))
                 {
@@ -72,7 +72,7 @@ namespace EasySave.Services.Logger
                 // Write all entries back to file
                 string jsonString = JsonSerializer.Serialize(entries, new JsonSerializerOptions
                 {
-                    WriteIndented = true
+                    WriteIndented = true,
                 });
                 File.WriteAllText(this.logFilePath, jsonString);
             }
@@ -85,7 +85,9 @@ namespace EasySave.Services.Logger
         private class LogEntry
         {
             public DateTime Timestamp { get; set; }
+
             public string Severity { get; set; } = string.Empty;
+
             public string Message { get; set; } = string.Empty;
         }
     }

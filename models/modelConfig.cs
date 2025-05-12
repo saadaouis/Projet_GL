@@ -2,10 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EasySave.Services.Logger;
@@ -18,6 +14,15 @@ namespace EasySave.Models
         private readonly string configPath;
         private readonly ILogger logger;
 
+                /// <summary>
+        /// Initializes a new instance of the <see cref="ModelConfig"/> class.
+        /// </summary>
+        public ModelConfig()
+        {
+            this.configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            this.logger = new FileLogger();
+        }
+
         /// <summary>Gets or sets the source directory path.</summary>
         [JsonPropertyName("Source")]
         public string? Source { get; set; } = string.Empty;
@@ -29,15 +34,6 @@ namespace EasySave.Models
         /// <summary>Gets or sets the application language.</summary>
         [JsonPropertyName("Language")]
         public string? Language { get; set; } = "En";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ModelConfig"/> class.
-        /// </summary>
-        public ModelConfig()
-        {
-            this.configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-            this.logger = new FileLogger();
-        }
 
         /// <summary>Loads the configuration from the config file.</summary>
         /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
@@ -82,7 +78,7 @@ namespace EasySave.Models
             {
                 string jsonString = JsonSerializer.Serialize(config, new JsonSerializerOptions
                 {
-                    WriteIndented = true
+                    WriteIndented = true,
                 });
 
                 File.WriteAllText(this.configPath, jsonString);

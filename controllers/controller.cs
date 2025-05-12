@@ -2,9 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using EasySave.Models;
 using EasySave.Services.Logger;
 using EasySave.Views;
@@ -134,7 +131,7 @@ namespace EasySave.Controllers
         /// </summary>
         private void ToggleConsoleLogging()
         {
-            this.consoleLogger.Log("", "info"); // This will display all logs from the file
+            this.consoleLogger.Log("Toggle Console Logging", "info"); // This will display all logs from the file
         }
 
         /// <summary>

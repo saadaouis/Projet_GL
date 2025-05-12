@@ -2,7 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
 using EasySave.Controllers;
 
 namespace EasySave

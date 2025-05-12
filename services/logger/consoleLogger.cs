@@ -1,7 +1,8 @@
-using System;
-using System.IO;
+// <copyright file="consoleLogger.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using System.Text.Json;
-using System.Collections.Generic;
 
 namespace EasySave.Services.Logger
 {
@@ -21,13 +22,15 @@ namespace EasySave.Services.Logger
         }
 
         /// <summary>
-        /// Gets or sets whether the logger is enabled.
+        /// Gets or sets a value indicating whether gets or sets whether the logger is enabled.
         /// </summary>
         public bool IsEnabled { get; set; }
 
         /// <summary>
         /// Displays all logs from the log file in the console.
         /// </summary>
+        /// <param name="message">The message to log.</param>
+        /// <param name="severity">The severity of the message.</param>
         public void Log(string message, string severity)
         {
             try
@@ -41,12 +44,12 @@ namespace EasySave.Services.Logger
                     {
                         Console.Clear();
                         Console.WriteLine("\n=== Log Entries ===\n");
-                        
+
                         foreach (var entry in entries)
                         {
                             Console.WriteLine($"[{entry.Timestamp}] [{entry.Severity}] {entry.Message}");
                         }
-                        
+
                         Console.WriteLine("\nPress any key to continue...");
                         Console.ReadKey();
                     }
@@ -61,7 +64,9 @@ namespace EasySave.Services.Logger
         private class LogEntry
         {
             public DateTime Timestamp { get; set; }
+
             public string Severity { get; set; } = string.Empty;
+
             public string Message { get; set; } = string.Empty;
         }
     }
