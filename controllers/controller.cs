@@ -159,6 +159,7 @@ namespace EasySave.Controllers
         /// <summary>
         /// Allows the user to download a backup version.
         /// </summary>
+  
         private void DownloadBackup()
         {
             View.ShowMessage("Download backup", "info");
