@@ -50,6 +50,7 @@ namespace EasySave.Controllers
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
+                    view.ChangeLanguage(this.modelConfig.Language!);
                     this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
                     this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                     this.projects = this.modelBackup.FetchProjects();
@@ -70,6 +71,7 @@ namespace EasySave.Controllers
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
+                            view.ChangeLanguage(this.modelConfig.Language!);
                             this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
                             this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                             this.projects = this.modelBackup.FetchProjects();
@@ -90,7 +92,7 @@ namespace EasySave.Controllers
 
             while (this.isRunning)
             {
-                int choice = View.ShowMenu();
+                int choice = view.ShowMenu();
                 switch (choice)
                 {
                     case 1:

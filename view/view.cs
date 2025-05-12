@@ -19,6 +19,7 @@ namespace EasySave.Views
         private const string SeverityText = "text";
         private const string LanguageFrench = "Fr";
         private const string LanguageEnglish = "En";
+        private string language = "En";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="View"/> class.
@@ -59,7 +60,7 @@ namespace EasySave.Views
         /// <returns>The index of the selected project.</returns>
         public static int ShowProjectList(List<ModelBackup.Project> projects)
         {
-            Console.WriteLine("Select a project :");
+            Console.WriteLine();
 
             for (int i = 0; i < projects.Count; i++)
             {
@@ -144,33 +145,6 @@ namespace EasySave.Views
             }
         }
 
-        /// <summary> Display the main menu. </summary>
-        /// <returns>The choice of the user.</returns>
-        public static int ShowMenu()
-        {
-            ShowMessage("Main menu", SeverityInfo);
-            ShowMessage("1) Download backup", SeverityText);
-            ShowMessage("2) Save backup", SeverityText);
-            ShowMessage("3) Toogle AutoSave", SeverityText);
-            ShowMessage("4) Modify config", SeverityText);
-            ShowMessage("5) Toggle console logging", SeverityText);
-            ShowMessage("6) Exit", SeverityText);
-
-            while (true)
-            {
-                string? choice = Console.ReadLine();
-                if (choice != null && int.TryParse(choice, out int choiceInt) &&
-                    choiceInt >= MinMenuChoice && choiceInt <= MaxMenuChoice)
-                {
-                    return choiceInt;
-                }
-                else
-                {
-                    ShowMessage("Invalid choice", SeverityError);
-                }
-            }
-        }
-
         /// <summary>
         /// Clears the console.
         /// </summary>
@@ -237,6 +211,42 @@ namespace EasySave.Views
             }
 
             return selected - 1;
+        }
+
+                /// <summary>
+        /// Change the language of the application.
+        /// </summary>
+        /// <param name="language">The language to change to.</param>
+        public void ChangeLanguage(string language)
+        {
+            this.language = language;
+        }
+
+                /// <summary> Display the main menu. </summary>
+        /// <returns>The choice of the user.</returns>
+        public int ShowMenu()
+        {
+            ShowMessage(this.language == LanguageEnglish ? "Main menu" : "Menu principal", SeverityInfo);
+            ShowMessage(this.language == LanguageEnglish ? "1) Download backup" : "1) Sauvegarder une sauvegarde", SeverityText);
+            ShowMessage(this.language == LanguageEnglish ? "2) Save backup" : "2) Sauvegarder une sauvegarde", SeverityText);
+            ShowMessage(this.language == LanguageEnglish ? "3) Toogle AutoSave" : "3) Activer/Désactiver l'enregistrement automatique", SeverityText);
+            ShowMessage(this.language == LanguageEnglish ? "4) Modify config" : "4) Modifier la configuration", SeverityText);
+            ShowMessage(this.language == LanguageEnglish ? "5) Toggle console logging" : "5) Activer/Désactiver le journalisation console", SeverityText);
+            ShowMessage(this.language == LanguageEnglish ? "6) Exit" : "6) Quitter", SeverityText);
+
+            while (true)
+            {
+                string? choice = Console.ReadLine();
+                if (choice != null && int.TryParse(choice, out int choiceInt) &&
+                    choiceInt >= MinMenuChoice && choiceInt <= MaxMenuChoice)
+                {
+                    return choiceInt;
+                }
+                else
+                {
+                    ShowMessage("Invalid choice", SeverityError);
+                }
+            }
         }
 
         /// <summary>
