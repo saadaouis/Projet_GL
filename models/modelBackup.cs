@@ -113,50 +113,6 @@ namespace EasySave.Models
             return projects;
         }
 
-        /// <summary>Download a backup version.</summary>
-        /// <param name="projectNumber">The project number.</param>
-        /// <param name="versionNumber">The version number.</param>
-        public void DownloadVersion(int projectNumber, int versionNumber)
-        {
-            string backupPath = Path.Combine(this.sourcePath, $"Project{projectNumber}", $"Version{versionNumber}");
-            string activePath = Path.Combine(this.destinationPath, $"Project{projectNumber}");
-
-            if (Directory.Exists(backupPath))
-            {
-                Directory.CreateDirectory(activePath);
-                foreach (var file in Directory.GetFiles(backupPath))
-                {
-                    var fileName = Path.GetFileName(file);
-                    File.Copy(file, Path.Combine(activePath, fileName), overwrite: true);
-                }
-            }
-            else
-            {
-                throw new Exception("Backup version not found");
-            }
-        }
-
-        /// <summary>
-        /// Fetches the versions of a project.
-        /// </summary>
-        /// <param name="projectNumber">The project number.</param>
-        /// <returns>A list of versions.</returns>
-        public List<string> FetchVersions(int projectNumber)
-        {
-            var versions = new List<string>();
-            var projectPath = Path.Combine(this.sourcePath, $"Project{projectNumber}");
-            if (Directory.Exists(projectPath))
-            {
-                versions = Directory.GetDirectories(projectPath)
-                    .Select(dir => new DirectoryInfo(dir))
-                    .OrderByDescending(dir => dir.LastWriteTime)
-                    .Select(dir => dir.Name)
-                    .ToList();
-            }
-
-            return versions;
-        }
-
         /// <summary>
         /// Gets the current backup state for a project.
         /// </summary>
@@ -252,12 +208,15 @@ namespace EasySave.Models
                     // Copy only modified files
                     if (!string.IsNullOrEmpty(lastBackupDir))
                     {
-                        CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
+                        this.CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
                     }
                     else
                     {
                         // If no backup exists, copy everything
-                        CopyDirectoryRecursiveWithProgress(sourceDirPath, versionDir, state);
+                        if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
+                        {
+                            return false;
+                        }
                     }
                 }
                 else
@@ -265,7 +224,10 @@ namespace EasySave.Models
                     // For manual backups, copy everything
                     var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
                     string versionDir = Path.Combine(saveDir, $"V{major}");
-                    CopyDirectoryRecursiveWithProgress(sourceDirPath, versionDir, state);
+                    if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
+                    {
+                        return false;
+                    }
                 }
 
                 state.IsComplete = true;
@@ -336,7 +298,7 @@ namespace EasySave.Models
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
         /// <returns>A list of versions with their paths and types.</returns>
-        public List<(string Path, string Version, bool IsUpdate)> GetProjectVersions(string projectName)
+        public List<(string Path, string Version, bool IsUpdate)> FetchVersions(string projectName)
         {
             var versions = new List<(string Path, string Version, bool IsUpdate)>();
             string projectPath = Path.Combine(this.destinationPath, projectName);
@@ -497,6 +459,36 @@ namespace EasySave.Models
         }
 
         /// <summary>
+        /// Checks if there are any modified files compared to the last backup.
+        /// </summary>
+        private static bool HasModifiedFiles(string sourceDir, string lastBackupDir)
+        {
+            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f))
+                .ToList();
+
+            foreach (var sourceFile in sourceFiles)
+            {
+                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
+                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
+
+                if (!File.Exists(lastBackupFile))
+                {
+                    return true; // New file found
+                }
+
+                var lastBackupInfo = new FileInfo(lastBackupFile);
+                if (sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
+                    sourceFile.Length != lastBackupInfo.Length)
+                {
+                    return true; // Modified file found
+                }
+            }
+
+            return false; // No changes found
+        }
+
+        /// <summary>
         /// Gets the next version number for a project.
         /// </summary>
         private static (int Major, int Minor) GetNextVersionNumber(string projectDir, bool isAutoSave)
@@ -547,124 +539,6 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Copies only modified files with progress tracking.
-        /// </summary>
-        private static void CopyModifiedFilesWithProgress(string sourceDir, string destDir, string lastBackupDir, BackupState state)
-        {
-            Directory.CreateDirectory(destDir);
-
-            // Get all files from source directory
-            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
-                .Select(f => new FileInfo(f))
-                .ToList();
-
-            // Filter only modified files
-            var modifiedFiles = sourceFiles.Where(sourceFile =>
-            {
-                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
-                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
-
-                if (!File.Exists(lastBackupFile))
-                {
-                    return true;
-                }
-
-                var lastBackupInfo = new FileInfo(lastBackupFile);
-                return sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
-                       sourceFile.Length != lastBackupInfo.Length;
-            }).ToList();
-
-            state.TotalFiles = modifiedFiles.Count;
-            state.TotalSize = modifiedFiles.Sum(f => f.Length);
-            state.ProcessedFiles = 0;
-            state.ProcessedSize = 0;
-            state.UpdateState();
-
-            foreach (var sourceFile in modifiedFiles)
-            {
-                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
-                string destFile = Path.Combine(destDir, relativePath);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
-                File.Copy(sourceFile.FullName, destFile, true);
-
-                state.ProcessedFiles++;
-                state.ProcessedSize += sourceFile.Length;
-                state.UpdateState();
-            }
-        }
-
-        /// <summary>
-        /// Checks if there are any modified files compared to the last backup.
-        /// </summary>
-        private static bool HasModifiedFiles(string sourceDir, string lastBackupDir)
-        {
-            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
-                .Select(f => new FileInfo(f))
-                .ToList();
-
-            foreach (var sourceFile in sourceFiles)
-            {
-                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
-                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
-
-                if (!File.Exists(lastBackupFile))
-                {
-                    return true; // New file found
-                }
-
-                var lastBackupInfo = new FileInfo(lastBackupFile);
-                if (sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
-                    sourceFile.Length != lastBackupInfo.Length)
-                {
-                    return true; // Modified file found
-                }
-            }
-
-            return false; // No changes found
-        }
-
-        /// <summary>
-        /// Copies a directory recursively with progress tracking.
-        /// </summary>
-        private static void CopyDirectoryRecursiveWithProgress(string sourceDir, string destDir, BackupState state)
-        {
-            Directory.CreateDirectory(destDir);
-
-            // Calculate total files and size
-            var allFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
-                .Select(f => new FileInfo(f))
-                .ToList();
-
-            state.TotalFiles = allFiles.Count;
-            state.TotalSize = allFiles.Sum(f => f.Length);
-            state.ProcessedFiles = 0;
-            state.ProcessedSize = 0;
-            state.UpdateState();
-
-            // Copy all files
-            foreach (string file in Directory.GetFiles(sourceDir))
-            {
-                string fileName = Path.GetFileName(file);
-                string destFile = Path.Combine(destDir, fileName);
-                File.Copy(file, destFile, true);
-
-                var fileInfo = new FileInfo(file);
-                state.ProcessedFiles++;
-                state.ProcessedSize += fileInfo.Length;
-                state.UpdateState();
-            }
-
-            // Copy all subdirectories
-            foreach (string subDir in Directory.GetDirectories(sourceDir))
-            {
-                string dirName = Path.GetFileName(subDir);
-                string destSubDir = Path.Combine(destDir, dirName);
-                CopyDirectoryRecursiveWithProgress(subDir, destSubDir, state);
-            }
-        }
-
-        /// <summary>
         /// Copies a directory recursively with progress tracking.
         /// </summary>
         private bool CopyDirectoryRecursive(string sourceDir, string targetDir, BackupState state)
@@ -711,6 +585,54 @@ namespace EasySave.Models
             {
                 state.ErrorMessage = ex.Message;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Copies only modified files with progress tracking.
+        /// </summary>
+        private void CopyModifiedFilesWithProgress(string sourceDir, string destDir, string lastBackupDir, BackupState state)
+        {
+            Directory.CreateDirectory(destDir);
+
+            // Get all files from source directory
+            var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f))
+                .ToList();
+
+            // Filter only modified files
+            var modifiedFiles = sourceFiles.Where(sourceFile =>
+            {
+                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
+                string lastBackupFile = Path.Combine(lastBackupDir, relativePath);
+
+                if (!File.Exists(lastBackupFile))
+                {
+                    return true;
+                }
+
+                var lastBackupInfo = new FileInfo(lastBackupFile);
+                return sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
+                       sourceFile.Length != lastBackupInfo.Length;
+            }).ToList();
+
+            state.TotalFiles = modifiedFiles.Count;
+            state.TotalSize = modifiedFiles.Sum(f => f.Length);
+            state.ProcessedFiles = 0;
+            state.ProcessedSize = 0;
+            state.UpdateState();
+
+            foreach (var sourceFile in modifiedFiles)
+            {
+                string relativePath = sourceFile.FullName.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar);
+                string destFile = Path.Combine(destDir, relativePath);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                File.Copy(sourceFile.FullName, destFile, true);
+
+                state.ProcessedFiles++;
+                state.ProcessedSize += sourceFile.Length;
+                state.UpdateState();
             }
         }
 

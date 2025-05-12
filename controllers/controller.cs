@@ -172,7 +172,7 @@ namespace EasySave.Controllers
             int selectedIndex = View.ShowProjectList(projects);
             string projectName = projects[selectedIndex].Name;
 
-            var versions = this.modelBackup.GetProjectVersions(projectName);
+            var versions = this.modelBackup.FetchVersions(projectName);
             if (versions.Count == 0)
             {
                 View.ShowMessage("No versions found for this project.", "warning");
