@@ -83,7 +83,7 @@ namespace EasySave.Controllers
                 {
                     case 1:
                         View.ClearConsole();
-                        this.DownloadFunction();
+                        this.DownloadBackup();
                         break;
                     case 2:
                         View.ClearConsole();
@@ -159,33 +159,6 @@ namespace EasySave.Controllers
         /// <summary>
         /// Allows the user to download a backup version.
         /// </summary>
-        private void DownloadFunction()
-        {
-            this.projects = this.modelBackup!.FetchProjects();
-            Console.WriteLine(this.projects);
-            if (this.projects.Count == 0)
-            {
-                View.ShowMessage("No projects available.", "error");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(this.projects);
-            string selectedProject = this.projects[selectedIndex].Name;
-            int projectNumber = int.Parse(selectedProject.Replace("Project", string.Empty));
-
-            var versionList = this.modelBackup.FetchVersions(projectNumber);
-            if (versionList.Count == 0)
-            {
-                View.ShowMessage("No versions available.", "error");
-                return;
-            }
-
-            int selectedVersion = View.ShowProjectVersion(versionList);
-            View.ShowMessage("Downloading project...", "info");
-            this.modelBackup.DownloadVersion(projectNumber, selectedVersion);
-            View.ShowMessage("Download complete.", "info");
-            }
-
         private void DownloadBackup()
         {
             View.ShowMessage("Download backup", "info");
@@ -199,13 +172,28 @@ namespace EasySave.Controllers
             int selectedIndex = View.ShowProjectList(projects);
             string projectName = projects[selectedIndex].Name;
 
+            var versions = this.modelBackup.GetProjectVersions(projectName);
+            if (versions.Count == 0)
+            {
+                View.ShowMessage("No versions found for this project.", "warning");
+                return;
+            }
+
+            int versionIndex = View.ShowVersionList(versions);
+            var selectedVersion = versions[versionIndex];
+
             var state = this.modelBackup.GetBackupState(projectName);
             state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
 
-            bool success = this.modelBackup.SaveProject(projectName);
+            bool success = this.modelBackup.DownloadVersion(
+                projectName,
+                selectedVersion.Path,
+                selectedVersion.IsUpdate,
+                state);
+
             if (!success)
             {
-                View.ShowMessage("Failed to download backup.", "error");
+                View.ShowMessage($"Failed to download version: {state.ErrorMessage}", "error");
             }
         }
 

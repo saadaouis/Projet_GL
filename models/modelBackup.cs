@@ -33,6 +33,9 @@ namespace EasySave.Models
             this.destinationPath = destinationPath;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ModelBackup"/> class.
+        /// </summary>
         public ModelBackup()
         {
             this.sourcePath = string.Empty;
@@ -109,7 +112,6 @@ namespace EasySave.Models
             Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
         }
-
 
         /// <summary>Download a backup version.</summary>
         /// <param name="projectNumber">The project number.</param>
@@ -569,6 +571,176 @@ namespace EasySave.Models
             /// Gets or sets the auto-save interval in seconds.
             /// </summary>
             public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes
+        }
+
+        /// <summary>
+        /// Gets all available versions for a project.
+        /// </summary>
+        /// <param name="projectName">The name of the project.</param>
+        /// <returns>A list of versions with their paths and types.</returns>
+        public List<(string Path, string Version, bool IsUpdate)> GetProjectVersions(string projectName)
+        {
+            var versions = new List<(string Path, string Version, bool IsUpdate)>();
+            string projectPath = Path.Combine(this.destinationPath, projectName);
+
+            // Get major versions
+            string backupsDir = Path.Combine(projectPath, "backups");
+            if (Directory.Exists(backupsDir))
+            {
+                foreach (var dir in Directory.GetDirectories(backupsDir))
+                {
+                    string version = Path.GetFileName(dir);
+                    if (version.StartsWith("V"))
+                    {
+                        versions.Add((dir, version, false));
+                    }
+                }
+            }
+
+            // Get updates
+            string updatesDir = Path.Combine(projectPath, "updates");
+            if (Directory.Exists(updatesDir))
+            {
+                foreach (var dir in Directory.GetDirectories(updatesDir))
+                {
+                    string version = Path.GetFileName(dir);
+                    if (version.StartsWith("V"))
+                    {
+                        versions.Add((dir, version, true));
+                    }
+                }
+            }
+
+            // Sort versions
+            versions.Sort((a, b) => 
+            {
+                var aParts = a.Version.Split('.');
+                var bParts = b.Version.Split('.');
+                
+                int aMajor = int.Parse(aParts[0].Substring(1));
+                int bMajor = int.Parse(bParts[0].Substring(1));
+                
+                if (aMajor != bMajor)
+                    return aMajor.CompareTo(bMajor);
+                
+                if (a.IsUpdate && b.IsUpdate)
+                {
+                    int aMinor = int.Parse(aParts[1]);
+                    int bMinor = int.Parse(bParts[1]);
+                    return aMinor.CompareTo(bMinor);
+                }
+                
+                return a.IsUpdate ? 1 : -1;
+            });
+
+            return versions;
+        }
+
+        /// <summary>
+        /// Downloads a specific version of a project.
+        /// </summary>
+        /// <param name="projectName">The name of the project.</param>
+        /// <param name="versionPath">The path to the version to download.</param>
+        /// <param name="isUpdate">Whether this is an update version.</param>
+        /// <param name="state">The backup state to update progress.</param>
+        /// <returns>True if the download was successful, false otherwise.</returns>
+        public bool DownloadVersion(string projectName, string versionPath, bool isUpdate, BackupState state)
+        {
+            try
+            {
+                string targetPath = Path.Combine(this.sourcePath, projectName);
+
+                if (isUpdate)
+                {
+                    string majorVersion = Path.GetFileName(versionPath).Split('.')[0];
+                    string majorVersionPath = Path.Combine(this.destinationPath, projectName, "backups", majorVersion);
+                    
+                    if (!Directory.Exists(majorVersionPath))
+                    {
+                        state.ErrorMessage = $"Major version {majorVersion} not found.";
+                        return false;
+                    }
+
+                    state.CurrentOperation = $"Downloading major version {majorVersion}";
+                    state.UpdateState();
+                    
+                    if (!CopyDirectoryRecursive(majorVersionPath, targetPath, state))
+                    {
+                        return false;
+                    }
+                }
+
+                state.CurrentOperation = $"Downloading version {Path.GetFileName(versionPath)}";
+                state.UpdateState();
+
+                if (!CopyDirectoryRecursive(versionPath, targetPath, state))
+                {
+                    return false;
+                }
+
+                state.IsComplete = true;
+                state.CurrentOperation = "Download complete";
+                state.UpdateState();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                state.IsComplete = true;
+                state.ErrorMessage = ex.Message;
+                state.CurrentOperation = "Error";
+                state.UpdateState();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Copies a directory recursively with progress tracking.
+        /// </summary>
+        private bool CopyDirectoryRecursive(string sourceDir, string targetDir, BackupState state)
+        {
+            try
+            {
+                Directory.CreateDirectory(targetDir);
+
+                var allFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+
+                state.TotalFiles = allFiles.Count;
+                state.TotalSize = allFiles.Sum(f => f.Length);
+                state.ProcessedFiles = 0;
+                state.ProcessedSize = 0;
+                state.UpdateState();
+
+                foreach (string file in Directory.GetFiles(sourceDir))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string destFile = Path.Combine(targetDir, fileName);
+                    File.Copy(file, destFile, true);
+
+                    var fileInfo = new FileInfo(file);
+                    state.ProcessedFiles++;
+                    state.ProcessedSize += fileInfo.Length;
+                    state.UpdateState();
+                }
+
+                foreach (string subDir in Directory.GetDirectories(sourceDir))
+                {
+                    string dirName = Path.GetFileName(subDir);
+                    string destSubDir = Path.Combine(targetDir, dirName);
+                    if (!CopyDirectoryRecursive(subDir, destSubDir, state))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                state.ErrorMessage = ex.Message;
+                return false;
+            }
         }
     }
 }

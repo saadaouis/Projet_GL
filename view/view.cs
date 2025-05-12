@@ -222,23 +222,23 @@ namespace EasySave.Views
         }
 
         /// <summary>
-        /// Displays a list of versions.
+        /// Displays a list of versions and allows the user to select one.
         /// </summary>
         /// <param name="versions">The list of versions to display.</param>
-        /// <returns>The choice of the user.</returns>
-        public static int ShowProjectVersion(List<string> versions)
+        /// <returns>The index of the selected version.</returns>
+        public static int ShowVersionList(List<(string Path, string Version, bool IsUpdate)> versions)
         {
-            Console.WriteLine("Select a version :");
-
+            View.ShowMessage("\nAvailable versions:", SeverityInfo);
             for (int i = 0; i < versions.Count; i++)
             {
-                Console.WriteLine($"{i + 1}. {versions[i]}");
+                string type = versions[i].IsUpdate ? "Update" : "Backup";
+                View.ShowMessage($"{i + 1}. {type} {versions[i].Version}", SeverityText);
             }
 
             int selected;
-            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > 5)
+            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > versions.Count)
             {
-                Console.WriteLine("Invalid input. Please enter a number between 1 and 5.");
+                View.ShowMessage("Invalid selection. Please try again.", SeverityError);
             }
 
             return selected - 1;
