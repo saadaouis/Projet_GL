@@ -28,10 +28,6 @@ namespace EasySave.Views
         /// <summary>
         /// Initializes a new instance of the <see cref="View"/> class.
         /// </summary>
-        public View()
-        {
-        }
-
         /// <summary>
         /// Displays a message.
         /// </summary>
@@ -222,6 +218,29 @@ namespace EasySave.Views
                 Console.WriteLine("\nPress any key to continue...");
                 Console.ReadKey();
             }
+        }
+
+        /// <summary>
+        /// Displays a list of versions and allows the user to select one.
+        /// </summary>
+        /// <param name="versions">The list of versions to display.</param>
+        /// <returns>The index of the selected version.</returns>
+        public static int ShowVersionList(List<(string Path, string Version, bool IsUpdate)> versions)
+        {
+            View.ShowMessage("\nAvailable versions:", SeverityInfo);
+            for (int i = 0; i < versions.Count; i++)
+            {
+                string type = versions[i].IsUpdate ? "Update" : "Backup";
+                View.ShowMessage($"{i + 1}. {type} {versions[i].Version}", SeverityText);
+            }
+
+            int selected;
+            while (!int.TryParse(Console.ReadLine(), out selected) || selected < 1 || selected > versions.Count)
+            {
+                View.ShowMessage("Invalid selection. Please try again.", SeverityError);
+            }
+
+            return selected - 1;
         }
 
         /// <summary>
