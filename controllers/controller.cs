@@ -2,9 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using EasySave.Models;
 using EasySave.Services.Logger;
 using EasySave.Views;
@@ -16,6 +13,8 @@ namespace EasySave.Controllers
     /// </summary>
     public class Controller
     {
+        private readonly ILogger fileLogger;
+        private readonly ILogger consoleLogger;
         private bool isRunning;
         private List<ModelBackup.Project> projects;
         private ModelBackup? modelBackup;
@@ -29,49 +28,62 @@ namespace EasySave.Controllers
             this.isRunning = false;
             this.projects = new List<ModelBackup.Project>();
             this.modelConfig = new ModelConfig();
+            this.fileLogger = new FileLogger();
+            this.consoleLogger = new ConsoleLogger { IsEnabled = false }; // Disabled by default
+
+            // Log initialization
+            this.fileLogger.Log("Controller initialized", "info");
         }
 
         /// <summary>
-        /// Starts the controller and initializes the application.
+        /// Starts the controller.
         /// </summary>
         public void Initialization()
         {
             this.isRunning = true;
-            ILogger logger = new ConsoleLogger();
+            this.fileLogger.Log("Starting application", "info");
             View view = new View();
 
             if (this.modelConfig.Load())
             {
+                this.fileLogger.Log("Config loaded", "info");
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
-                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
+                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                     this.projects = this.modelBackup.FetchProjects();
                 }
             }
             else
             {
+                this.fileLogger.Log("No config found", "error");
                 View.ShowMessage("No config found", "error");
                 Dictionary<string, string> config = view.InitializeForm();
                 if (this.modelConfig.SaveOrOverride(config))
                 {
+                    this.fileLogger.Log("Config saved", "info");
                     View.ShowMessage("Config saved", "info");
                     if (this.modelConfig.Load())
                     {
+                        this.fileLogger.Log("Config loaded", "info");
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
-                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                             this.projects = this.modelBackup.FetchProjects();
                         }
                     }
                     else
                     {
+                        this.fileLogger.Log("Failed to load config", "error");
                         View.ShowMessage("Failed to load config", "error");
                     }
                 }
                 else
                 {
+                    this.fileLogger.Log("Failed to save config", "error");
                     View.ShowMessage("Failed to save config", "error");
                 }
             }
@@ -99,6 +111,10 @@ namespace EasySave.Controllers
                         this.ModifyConfig();
                         break;
                     case 5:
+                        View.ClearConsole();
+                        this.ToggleConsoleLogging();
+                        break;
+                    case 6:
                         View.ShowMessage("Exit", "info");
                         this.isRunning = false;
                         break;
@@ -107,6 +123,26 @@ namespace EasySave.Controllers
                         View.ShowMessage("Invalid choice", "error");
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Toggles console logging on/off.
+        /// </summary>
+        private void ToggleConsoleLogging()
+        {
+            this.consoleLogger.Log("Toggle Console Logging", "info"); // This will display all logs from the file
+        }
+
+        /// <summary>
+        /// Logs a message to all enabled loggers.
+        /// </summary>
+        private void LogMessage(string message, string severity)
+        {
+            this.fileLogger.Log(message, severity);
+            if (this.consoleLogger.IsEnabled)
+            {
+                this.consoleLogger.Log(message, severity);
             }
         }
 
