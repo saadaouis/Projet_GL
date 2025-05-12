@@ -19,7 +19,7 @@ namespace EasySave.Models
         /// </summary>
         public ModelConfig()
         {
-            this.configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            this.configPath = "config/config.json";
             this.logger = new FileLogger();
         }
 
@@ -49,6 +49,7 @@ namespace EasySave.Models
 
                 string jsonString = File.ReadAllText(this.configPath);
                 var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
+                this.logger.Log($"Config file found: {this.configPath}", "info");
 
                 if (config != null)
                 {
