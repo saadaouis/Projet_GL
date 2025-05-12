@@ -1,3 +1,7 @@
+// <copyright file="iLogger.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using System;
 
 namespace EasySave.Services.Logger

@@ -3,23 +3,20 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using EasySave.Services.Logger;
 
 namespace EasySave.Models
 {
     /// <summary> Configuration model class for handling application settings.</summary>
     public class ModelConfig
     {
-        // Class variables
-        private const string ConfigPath = "config/config.json";
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = null, // Use exact property names
-        };
+        private readonly string configPath;
+        private readonly ILogger logger;
 
         /// <summary>Gets or sets the source directory path.</summary>
         [JsonPropertyName("Source")]
@@ -33,34 +30,45 @@ namespace EasySave.Models
         [JsonPropertyName("Language")]
         public string? Language { get; set; } = "En";
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ModelConfig"/> class.
+        /// </summary>
+        public ModelConfig()
+        {
+            this.configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            this.logger = new FileLogger();
+        }
+
         /// <summary>Loads the configuration from the config file.</summary>
-        /// <returns>The loaded configuration or null if the file doesn't exist or is invalid.</returns>
+        /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
         public bool Load()
         {
             try
             {
-                if (!File.Exists(ConfigPath))
+                if (!File.Exists(this.configPath))
                 {
+                    this.logger.Log("Config file not found", "warning");
                     return false;
                 }
 
-                string jsonString = File.ReadAllText(ConfigPath);
-                var configFile = JsonSerializer.Deserialize<ModelConfig>(jsonString, JsonOptions);
+                string jsonString = File.ReadAllText(this.configPath);
+                var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
 
-                if (configFile == null)
+                if (config != null)
                 {
-                    return false;
+                    this.Source = config.GetValueOrDefault("Source");
+                    this.Destination = config.GetValueOrDefault("Destination");
+                    this.Language = config.GetValueOrDefault("Language");
+                    this.logger.Log("Configuration loaded successfully", "info");
+                    return true;
                 }
 
-                this.Source = configFile.Source;
-                this.Destination = configFile.Destination;
-                this.Language = configFile.Language;
-
-                return true;
+                this.logger.Log("Failed to deserialize config file", "error");
+                return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading config: {ex.Message}");
+                this.logger.Log($"Error loading configuration: {ex.Message}", "error");
                 return false;
             }
         }
@@ -72,43 +80,18 @@ namespace EasySave.Models
         {
             try
             {
-                // Ensure the directory exists
-                string? directoryPath = Path.GetDirectoryName(ConfigPath);
-                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                string jsonString = JsonSerializer.Serialize(config, new JsonSerializerOptions
                 {
-                    Directory.CreateDirectory(directoryPath);
-                }
+                    WriteIndented = true
+                });
 
-                // Update the current instance with the new values
-                if (config.ContainsKey("Source"))
-                {
-                    this.Source = config["Source"];
-                }
-
-                if (config.ContainsKey("Destination"))
-                {
-                    this.Destination = config["Destination"];
-                }
-
-                if (config.ContainsKey("Language"))
-                {
-                    this.Language = config["Language"];
-                }
-
-                // Serialize the current instance
-                string jsonString = JsonSerializer.Serialize(this, JsonOptions);
-                File.WriteAllText(ConfigPath, jsonString);
+                File.WriteAllText(this.configPath, jsonString);
+                this.logger.Log("Configuration saved successfully", "info");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error saving config: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
-                }
-
+                this.logger.Log($"Error saving configuration: {ex.Message}", "error");
                 return false;
             }
         }

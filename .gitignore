@@ -2,6 +2,7 @@
 bin/
 obj/
 config/config.json
+log.json
 
 # Visual Studio files
 .vs/

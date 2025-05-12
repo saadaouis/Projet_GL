@@ -15,7 +15,6 @@ namespace EasySave.Services.Logger
     public class FileLogger : ILogger
     {
         private readonly string logFilePath;
-        private readonly List<LogEntry> logEntries;
         private bool isEnabled;
 
         /// <summary>
@@ -23,10 +22,7 @@ namespace EasySave.Services.Logger
         /// </summary>
         public FileLogger()
         {
-            string logsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-            Directory.CreateDirectory(logsDirectory);
-            this.logFilePath = Path.Combine(logsDirectory, $"log_{DateTime.Now:yyyyMMdd}.json");
-            this.logEntries = new List<LogEntry>();
+            this.logFilePath = "log.json";
             this.isEnabled = true;
         }
 
@@ -55,11 +51,26 @@ namespace EasySave.Services.Logger
                 Message = message
             };
 
-            this.logEntries.Add(logEntry);
-
             try
             {
-                string jsonString = JsonSerializer.Serialize(this.logEntries, new JsonSerializerOptions
+                List<LogEntry> entries = new List<LogEntry>();
+                
+                // Read existing entries if file exists
+                if (File.Exists(this.logFilePath))
+                {
+                    string existingJson = File.ReadAllText(this.logFilePath);
+                    var existingEntries = JsonSerializer.Deserialize<List<LogEntry>>(existingJson);
+                    if (existingEntries != null)
+                    {
+                        entries.AddRange(existingEntries);
+                    }
+                }
+
+                // Add new entry
+                entries.Add(logEntry);
+
+                // Write all entries back to file
+                string jsonString = JsonSerializer.Serialize(entries, new JsonSerializerOptions
                 {
                     WriteIndented = true
                 });

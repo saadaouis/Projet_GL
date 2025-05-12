@@ -17,7 +17,7 @@ namespace EasySave.Views
     public class View
     {
         private const int MinMenuChoice = 1;
-        private const int MaxMenuChoice = 5;
+        private const int MaxMenuChoice = 6;
         private const string SeverityInfo = "info";
         private const string SeverityWarning = "warning";
         private const string SeverityError = "error";
@@ -158,7 +158,8 @@ namespace EasySave.Views
             ShowMessage("2) Save backup", SeverityText);
             ShowMessage("3) Toogle AutoSave", SeverityText);
             ShowMessage("4) Modify config", SeverityText);
-            ShowMessage("5) Exit", SeverityText);
+            ShowMessage("5) Toggle console logging", SeverityText);
+            ShowMessage("6) Exit", SeverityText);
 
             while (true)
             {

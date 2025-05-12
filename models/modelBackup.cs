@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EasySave.Services.Logger;
 
 namespace EasySave.Models
 {
@@ -21,16 +22,19 @@ namespace EasySave.Models
         private readonly string destinationPath = string.Empty;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
+        private readonly ILogger logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
         /// </summary>
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
-        public ModelBackup(string sourcePath, string destinationPath)
+        /// <param name="logger">The logger instance.</param>
+        public ModelBackup(string sourcePath, string destinationPath, ILogger logger)
         {
             this.sourcePath = sourcePath;
             this.destinationPath = destinationPath;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -40,6 +44,7 @@ namespace EasySave.Models
         {
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
+            this.logger = new FileLogger(); // Default to file logging
         }
 
         /// <summary>
@@ -61,13 +66,11 @@ namespace EasySave.Models
             }
 
             var projects = new List<Project>();
-            Console.WriteLine("Starting FetchProjects()...");
+            this.logger.Log("Starting FetchProjects()...", "info");
 
             try
             {
-                Console.WriteLine($"Fetching directories from: {this.destinationPath}");
-
-                Console.WriteLine($"Fetching directories from: {this.destinationPath}");
+                this.logger.Log($"Fetching directories from: {path}", "info");
 
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(path)
@@ -75,41 +78,41 @@ namespace EasySave.Models
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Take(MaxProjects);
 
-                Console.WriteLine($"Found {directories.Count()} directories.");
+                this.logger.Log($"Found {directories.Count()} directories.", "info");
 
                 foreach (var dir in directories)
                 {
-                    Console.WriteLine($"Processing directory: {dir.FullName}");
+                    this.logger.Log($"Processing directory: {dir.FullName}", "info");
 
                     try
-                {
-                    // Calculate directory size
-                    double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
-                    Console.WriteLine($"Size of {dir.Name}: {sizeInMB:F2} MB");
-
-                    // Create project object
-                    var project = new Project
                     {
-                        Name = dir.Name,
-                        LastBackup = dir.LastWriteTime,
-                        Size = Math.Round(sizeInMB, 2),
-                    };
+                        // Calculate directory size
+                        double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
+                        this.logger.Log($"Size of {dir.Name}: {sizeInMB:F2} MB", "info");
 
-                    projects.Add(project);
-                    Console.WriteLine($"Project added: {project.Name}, {project.LastBackup}, {project.Size} MB");
+                        // Create project object
+                        var project = new Project
+                        {
+                            Name = dir.Name,
+                            LastBackup = dir.LastWriteTime,
+                            Size = Math.Round(sizeInMB, 2),
+                        };
+
+                        projects.Add(project);
+                        this.logger.Log($"Project added: {project.Name}, {project.LastBackup}, {project.Size} MB", "info");
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.Log($"Error processing directory {dir.Name}: {ex.Message}", "error");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
-                }
-    }
-}
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching projects: {ex.Message}");
+                this.logger.Log($"Error fetching projects: {ex.Message}", "error");
             }
 
-            Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
+            this.logger.Log($"FetchProjects() completed. Total projects fetched: {projects.Count}", "info");
             return projects;
         }
 
@@ -165,6 +168,8 @@ namespace EasySave.Models
                 state.ErrorMessage = null;
                 state.UpdateState();
 
+                this.logger.Log($"Starting {(isAutoSave ? "auto-save" : "backup")} for project: {projectName}", "info");
+
                 string projectDir = Path.Combine(this.destinationPath, projectName);
                 string saveTypeDir = isAutoSave ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
@@ -172,6 +177,7 @@ namespace EasySave.Models
 
                 // Create directories if they don't exist
                 Directory.CreateDirectory(saveDir);
+                this.logger.Log($"Created directory: {saveDir}", "info");
 
                 if (isAutoSave)
                 {
@@ -189,12 +195,14 @@ namespace EasySave.Models
                         if (backupDirs.Any())
                         {
                             lastBackupDir = backupDirs.First().FullName;
+                            this.logger.Log($"Found last backup directory: {lastBackupDir}", "info");
                         }
                     }
 
                     // Check if there are any changes before creating a new update
                     if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
                     {
+                        this.logger.Log("No changes detected, skipping auto-save", "info");
                         state.IsComplete = true;
                         state.CurrentOperation = "No changes detected";
                         state.UpdateState();
@@ -204,6 +212,7 @@ namespace EasySave.Models
                     // Get the next version number
                     var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
                     string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
+                    this.logger.Log($"Creating update version: V{major}.{minor}", "info");
 
                     // Copy only modified files
                     if (!string.IsNullOrEmpty(lastBackupDir))
@@ -224,6 +233,7 @@ namespace EasySave.Models
                     // For manual backups, copy everything
                     var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
                     string versionDir = Path.Combine(saveDir, $"V{major}");
+                    this.logger.Log($"Creating backup version: V{major}", "info");
                     if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
                     {
                         return false;
@@ -233,6 +243,7 @@ namespace EasySave.Models
                 state.IsComplete = true;
                 state.CurrentOperation = "Complete";
                 state.UpdateState();
+                this.logger.Log($"{(isAutoSave ? "Auto-save" : "Backup")} completed successfully", "info");
                 return true;
             }
             catch (Exception ex)
@@ -242,7 +253,7 @@ namespace EasySave.Models
                 state.ErrorMessage = ex.Message;
                 state.CurrentOperation = "Error";
                 state.UpdateState();
-                Console.WriteLine($"Error saving project: {ex.Message}");
+                this.logger.Log($"Error saving project: {ex.Message}", "error");
                 return false;
             }
         }

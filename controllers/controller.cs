@@ -33,14 +33,18 @@ namespace EasySave.Controllers
             this.modelConfig = new ModelConfig();
             this.fileLogger = new FileLogger();
             this.consoleLogger = new ConsoleLogger { IsEnabled = false }; // Disabled by default
+
+            // Log initialization
+            this.fileLogger.Log("Controller initialized", "info");
         }
 
         /// <summary>
         /// Starts the controller.
         /// </summary>
-        public void Start()
+        public void Initialization()
         {
             this.isRunning = true;
+            this.fileLogger.Log("Starting application", "info");
             View view = new View();
 
             if (this.modelConfig.Load())
@@ -49,7 +53,8 @@ namespace EasySave.Controllers
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
-                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                    this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
+                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                     this.projects = this.modelBackup.FetchProjects();
                 }
             }
@@ -68,7 +73,8 @@ namespace EasySave.Controllers
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
-                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
+                            this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
                             this.projects = this.modelBackup.FetchProjects();
                         }
                     }
@@ -128,10 +134,7 @@ namespace EasySave.Controllers
         /// </summary>
         private void ToggleConsoleLogging()
         {
-            this.consoleLogger.IsEnabled = !this.consoleLogger.IsEnabled;
-            string status = this.consoleLogger.IsEnabled ? "enabled" : "disabled";
-            this.fileLogger.Log($"Console logging {status}", "info");
-            View.ShowMessage($"Console logging {status}", "info");
+            this.consoleLogger.Log("", "info"); // This will display all logs from the file
         }
 
         /// <summary>
