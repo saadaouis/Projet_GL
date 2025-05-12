@@ -63,8 +63,6 @@ namespace EasySave.Controllers
                         {
                             this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                             this.projects = this.modelBackup.FetchProjects();
-                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
-                            this.projects = this.modelBackup.FetchProjects();
                         }
                     }
                     else
@@ -253,36 +251,6 @@ namespace EasySave.Controllers
             View.ShowMessage(
                 isEnabled ? $"Auto-save enabled for {projectName}" : $"Auto-save disabled for {projectName}",
                 "info");
-        }
-
-        /// <summary>
-        /// Allows the user to download a backup version.
-        /// </summary>
-        public void downloadFunction()
-        {
-            this.projects = this.modelBackup!.FetchProjects();
-            Console.WriteLine(this.projects);
-            if (this.projects.Count == 0)
-            {
-                View.ShowMessage("No projects available.", "error");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(this.projects);
-            string selectedProject = this.projects[selectedIndex].Name;
-            int projectNumber = int.Parse(selectedProject.Replace("Project", ""));
-
-            var versionList = this.modelBackup.FetchVersions(projectNumber);
-            if (versionList.Count == 0)
-            {
-                View.ShowMessage("No versions available.", "error");
-                return;
-            }
-
-            int selectedVersion = View.ShowProjectVersion(versionList);
-            View.ShowMessage("Downloading project...", "info");
-            this.modelBackup.DownloadVersion(projectNumber, selectedVersion);
-            View.ShowMessage("Download complete.", "info");
         }
     }
 }
