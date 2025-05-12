@@ -34,7 +34,6 @@ namespace EasySave.Models
         }
 
         /// <summary>
-
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
         /// </summary>
         public ModelBackup()
@@ -44,7 +43,6 @@ namespace EasySave.Models
         }
 
         /// <summary>
-
         /// Fetches the most recent projects from the filesystem.
         /// </summary>
         /// <param name="directory">The directory to fetch projects from.</param>
@@ -418,180 +416,6 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Gets the current backup state for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <returns>The backup state for the project.</returns>
-        public BackupState GetBackupState(string projectName)
-        {
-            if (!this.backupStates.ContainsKey(projectName))
-            {
-                this.backupStates[projectName] = new BackupState { ProjectName = projectName };
-            }
-
-            return this.backupStates[projectName];
-        }
-
-        /// <summary>
-        /// Toggles auto-save for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
-        public bool ToggleAutoSave(string projectName, int intervalSeconds)
-        {
-            if (this.autoSaveTasks.ContainsKey(projectName))
-            {
-                this.StopAutoSave(projectName);
-                return false;
-            }
-            else
-            {
-                var project = new Project { Name = projectName };
-                this.StartAutoSave(new List<Project> { project }, intervalSeconds);
-                return true;
-            }
-        }
-
-        /// <summary>
-        /// Saves a project with the specified version number.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="isAutoSave">Whether this is an auto-save operation.</param>
-        /// <returns>True if the save was successful, false otherwise.</returns>
-        public bool SaveProject(string projectName, bool isAutoSave = false)
-        {
-            try
-            {
-                var state = this.GetBackupState(projectName);
-                state.CurrentOperation = isAutoSave ? "Auto-saving" : "Backing up";
-                state.IsComplete = false;
-                state.ErrorMessage = null;
-                state.UpdateState();
-
-                string projectDir = Path.Combine(this.destinationPath, projectName);
-                string saveTypeDir = isAutoSave ? "updates" : "backups";
-                string saveDir = Path.Combine(projectDir, saveTypeDir);
-                string sourceDirPath = Path.Combine(this.sourcePath, projectName);
-
-                // Create directories if they don't exist
-                Directory.CreateDirectory(saveDir);
-
-                if (isAutoSave)
-                {
-                    // For auto-save, find the latest backup directory
-                    string backupsDir = Path.Combine(projectDir, "backups");
-                    string lastBackupDir = string.Empty;
-
-                    if (Directory.Exists(backupsDir))
-                    {
-                        var backupDirs = Directory.GetDirectories(backupsDir)
-                            .Select(dir => new DirectoryInfo(dir))
-                            .OrderByDescending(dir => dir.LastWriteTime)
-                            .ToList();
-
-                        if (backupDirs.Any())
-                        {
-                            lastBackupDir = backupDirs.First().FullName;
-                        }
-                    }
-
-                    // Check if there are any changes before creating a new update
-                    if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
-                    {
-                        state.IsComplete = true;
-                        state.CurrentOperation = "No changes detected";
-                        state.UpdateState();
-                        return true;
-                    }
-
-                    // Get the next version number
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
-                    string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
-
-                    // Copy only modified files
-                    if (!string.IsNullOrEmpty(lastBackupDir))
-                    {
-                        CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
-                    }
-                    else
-                    {
-                        // If no backup exists, copy everything
-                        CopyDirectoryRecursiveWithProgress(sourceDirPath, versionDir, state);
-                    }
-                }
-                else
-                {
-                    // For manual backups, copy everything
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
-                    string versionDir = Path.Combine(saveDir, $"V{major}");
-                    CopyDirectoryRecursiveWithProgress(sourceDirPath, versionDir, state);
-                }
-
-                state.IsComplete = true;
-                state.CurrentOperation = "Complete";
-                state.UpdateState();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                var state = this.GetBackupState(projectName);
-                state.IsComplete = true;
-                state.ErrorMessage = ex.Message;
-                state.CurrentOperation = "Error";
-                state.UpdateState();
-                Console.WriteLine($"Error saving project: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Starts auto-save for a project.
-        /// </summary>
-        /// <param name="projects">The list of projects to auto-save.</param>
-        /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        public void StartAutoSave(List<ModelBackup.Project> projects, int intervalSeconds)
-        {
-            foreach (var project in projects)
-            {
-                if (this.autoSaveTasks.ContainsKey(project.Name))
-                {
-                    this.StopAutoSave(project.Name);
-                }
-
-                var cts = new CancellationTokenSource();
-                this.autoSaveTasks[project.Name] = cts;
-
-                Task.Run(
-                async () =>
-                {
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        await Task.Delay(intervalSeconds * 1000, cts.Token);
-                        if (!cts.Token.IsCancellationRequested)
-                        {
-                            this.SaveProject(project.Name, true);
-                        }
-                    }
-            },
-                cts.Token);
-            }
-        }
-
-        /// <summary>
-        /// Stops auto-save for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        public void StopAutoSave(string projectName)
-        {
-            if (this.autoSaveTasks.TryGetValue(projectName, out var cts))
-            {
-                cts.Cancel();
-                this.autoSaveTasks.Remove(projectName);
-            }
-        }
-
-        /// <summary>
         /// Calculates the total size of a directory in bytes.
         /// </summary>
         private static long CalculateDirectorySize(DirectoryInfo directory)
@@ -665,7 +489,6 @@ namespace EasySave.Models
         }
 
         /// <summary>
-
         /// Gets the next version number for a project.
         /// </summary>
         private static (int Major, int Minor) GetNextVersionNumber(string projectDir, bool isAutoSave)
