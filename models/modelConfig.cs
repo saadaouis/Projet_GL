@@ -19,7 +19,7 @@ namespace EasySave.Models
         /// </summary>
         public ModelConfig()
         {
-            this.configPath = "config/config.json";
+            this.configPath = "json/config.json";
             this.logger = new FileLogger();
         }
 
