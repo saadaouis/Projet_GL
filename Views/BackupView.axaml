@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:EasySave.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="EasySave.Views.BackupView"
+             x:DataType="vm:BackupViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Row="0" 
+                   Text="Backup Operations" 
+                   FontSize="24" 
+                   Margin="0,0,0,20"/>
+
+        <DataGrid Grid.Row="1" 
+                  Items="{Binding BackupStates}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="Source" Binding="{Binding SourcePath}"/>
+                <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}"/>
+                <DataGridTextColumn Header="Progress" Binding="{Binding Progress}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <ProgressBar Grid.Row="2" 
+                     Value="{Binding BackupProgress}"
+                     IsVisible="{Binding IsBackupInProgress}"
+                     Height="20"
+                     Margin="0,10,0,0"/>
+    </Grid>
+</UserControl> 
