@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -21,9 +23,13 @@ namespace EasySave.ViewModels
         private readonly TranslationService translationService;
         private bool isBackupInProgress;
         private List<ModelBackup.Project> availableProjects;
-        private ModelBackup.Project? selectedProject;
         private string sourcePath;
         private string destinationPath;
+
+        /// <summary>
+        /// Gets the collection of currently selected projects.
+        /// </summary>
+        public ObservableCollection<ModelBackup.Project> SelectedProjects { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackupViewModel"/> class.
@@ -36,18 +42,16 @@ namespace EasySave.ViewModels
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
 
-            this.modelBackup = new ModelBackup(this.sourcePath, this.destinationPath);
+            this.modelBackup = new ModelBackup();
             this.translationService = translationService;
 
             this.availableProjects = new List<ModelBackup.Project>();
+            this.SelectedProjects = new ObservableCollection<ModelBackup.Project>();
 
             // Initialize commands
             this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync());
-            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectAsync());
+            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync());
 /*          this.DownloadBackupCommand = new AsyncRelayCommand(async () => await this.DownloadSelectedProjectAsync()); */
-
-            // Load initial projects
-            _ = this.LoadProjectsAsync();
         }
 
         /// <summary>
@@ -60,21 +64,37 @@ namespace EasySave.ViewModels
         }
 
         /// <summary>
-        /// Gets or sets the source path.
+        /// Gets or sets the source path and updates the underlying ModelBackup instance.
         /// </summary>
         public string SourcePath
         {
             get => this.sourcePath;
-            set => this.SetProperty(ref this.sourcePath, value);
+            set
+            {
+                if (this.SetProperty(ref this.sourcePath, value))
+                {
+                    this.modelBackup.SourcePath = value;
+                }
+            }
         }
 
         /// <summary>
-        /// Gets or sets the destination path.
+        /// Gets or sets the destination path and updates the underlying ModelBackup instance.
         /// </summary>
         public string DestinationPath
         {
             get => this.destinationPath;
-            set => this.SetProperty(ref this.destinationPath, value);
+            set
+            {
+                Console.WriteLine($"Setting DestinationPath: {value}");
+                if (this.SetProperty(ref this.destinationPath, value))
+                {
+                    this.destinationPath = value;
+                    Console.WriteLine($"DestinationPath set to: {this.destinationPath}");
+                    this.modelBackup.DestinationPath = value;
+                    Console.WriteLine($"ModelBackup DestinationPath set to: {this.modelBackup.DestinationPath}");
+                }
+            }
         }
 
         /// <summary>
@@ -84,15 +104,6 @@ namespace EasySave.ViewModels
         {
             get => this.availableProjects;
             set => this.SetProperty(ref this.availableProjects, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the selected project.
-        /// </summary>
-        public ModelBackup.Project? SelectedProject
-        {
-            get => this.selectedProject;
-            set => this.SetProperty(ref this.selectedProject, value);
         }
 
         /// <summary>
@@ -120,7 +131,11 @@ namespace EasySave.ViewModels
         /// </summary>
         public ICommand DownloadBackupCommand { get; } */
 
-        private async Task LoadProjectsAsync()
+        /// <summary>
+        /// Loads the projects asynchronously.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task LoadProjectsAsync()
         {
             try
             {
@@ -133,45 +148,65 @@ namespace EasySave.ViewModels
         }
 
         /// <summary>
-        /// Saves the currently selected project.
+        /// Saves the currently selected projects.
         /// </summary>
-        /// <param name="isDifferential">Whether to perform a differential backup.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task<bool> SaveSelectedProjectAsync(bool isDifferential = false)
+        private async Task SaveSelectedProjectsAsync()
         {
-            if (this.SelectedProject == null)
+            if (this.SelectedProjects == null || this.SelectedProjects.Count == 0)
             {
-                Console.WriteLine("No project selected");
-                return false;
+                Console.WriteLine("No projects selected to save.");
+                return;
             }
 
+            this.IsBackupInProgress = true;
+            Console.WriteLine($"Starting backup process for {this.SelectedProjects.Count} project(s).");
             try
             {
-                this.IsBackupInProgress = true;
-                Console.WriteLine("Starting backup process");
-
-                if (this.AvailableProjects.Count >= 5)
+                // Basic check, might need refinement based on overall project limit logic
+                if (this.AvailableProjects.Count + this.SelectedProjects.Count > 5 && !this.SelectedProjects.All(sp => this.AvailableProjects.Any(ap => ap.Name == sp.Name)))
                 {
-                    Console.WriteLine("Maximum number of projects reached");
-                    return false;
+                    Console.WriteLine("Adding these projects would exceed the maximum number of projects.");
+                    // Potentially provide more specific feedback to the user
+                    return;
                 }
 
-                await this.modelBackup.SaveProjectAsync(this.SelectedProject.Name, isDifferential);
-                Console.WriteLine($"Project saved successfully: {this.SelectedProject.Name}");
+                List<Task<bool>> saveTasks = new List<Task<bool>>();
+                foreach (var project in this.SelectedProjects)
+                {
+                    Console.WriteLine($"Queueing save for project: {project.Name}");
+                    // Assuming SaveProjectAsync takes the project name and handles differential flag internally or a default.
+                    // If isDifferential needs to be set, it should be a parameter or another property.
+                    saveTasks.Add(this.modelBackup.SaveProjectAsync(project.Name, isDifferential: false)); 
+                }
+                
+                bool[] results = await Task.WhenAll(saveTasks);
+                
+                int successfulSaves = results.Count(r => r);
+                Console.WriteLine($"Backup process completed. {successfulSaves} out of {this.SelectedProjects.Count} projects saved successfully.");
 
-                // Refresh the project list after saving
-                await this.LoadProjectsAsync();
-                return true;
+                await this.LoadProjectsAsync(); // Refresh the project list
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during backup: {ex.Message}");
-                return false;
+                Console.WriteLine($"Error during batch backup: {ex.Message}");
+                // Consider how to report errors for individual project saves if Task.WhenAll throws
             }
             finally
             {
                 this.IsBackupInProgress = false;
             }
+        }
+
+        // Method to be called from View code-behind to update SelectedProjects
+        public void UpdateSelectedProjects(IEnumerable<object> selectedItems)
+        {
+            this.SelectedProjects.Clear();
+            foreach (var item in selectedItems.OfType<ModelBackup.Project>())
+            {
+                this.SelectedProjects.Add(item);
+            }
+            Console.WriteLine($"Selected projects updated. Count: {this.SelectedProjects.Count}");
         }
 
         /* private async Task DownloadSelectedProjectAsync()
