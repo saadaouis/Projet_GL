@@ -104,6 +104,10 @@ namespace EasySave.ViewModels
                 Console.WriteLine($"Language changed from {previousLanguage} to {this.CurrentConfig.Language}. Updating TranslationService.");
                 await this.translationService.SetLanguageAsync(this.CurrentConfig.Language ?? "en");
             }
+            this.mainViewModel.backupViewModel.SourcePath = this.CurrentConfig.Source ?? string.Empty;
+            this.mainViewModel.backupViewModel.DestinationPath = this.CurrentConfig.Destination ?? string.Empty;
+            this.mainViewModel.backupViewModel.RefreshProjectsCommand.Execute(null);
+            this.mainViewModel.backupViewModel.RefreshBackupCommand.Execute(null);
 
             // Navigate back to the main/backup view
             this.mainViewModel?.NavigateToBackupView();
