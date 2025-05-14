@@ -1,3 +1,7 @@
+// <copyright file="MainWindow.axaml.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using Avalonia.Controls;
 using EasySave.ViewModels;
 
@@ -7,13 +11,13 @@ namespace EasySave.Views
     {
         public MainWindow()
         {
-            InitializeComponent();
+            this.InitializeComponent();
         }
 
         public MainWindow(MainViewModel viewModel)
         {
-            InitializeComponent();
-            DataContext = viewModel;
+            this.InitializeComponent();
+            this.DataContext = viewModel;
         }
     }
-} 
+}

@@ -1,81 +1,88 @@
+// <copyright file="ConfigViewModel.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using System;
 using System.Threading.Tasks;
 using EasySave.Models;
-using EasySave.Services.Logger;
+
 using EasySave.Services.Translation;
 
 namespace EasySave.ViewModels
 {
+    /// <summary>
+    /// View model for managing configuration settings.
+    /// </summary>
     public class ConfigViewModel : ViewModelBase
     {
         private readonly ModelConfig modelConfig;
-        private readonly ILogger logger;
         private readonly TranslationService translationService;
-        private Config currentConfig;
+        private ModelConfig.Config currentConfig;
 
-        public Config CurrentConfig
-        {
-            get => currentConfig;
-            set => SetProperty(ref currentConfig, value);
-        }
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigViewModel"/> class.
+        /// </summary>
+        /// <param name="translationService">The translation service instance.</param>
         public ConfigViewModel(
-            ModelConfig modelConfig,
-            ILogger logger,
             TranslationService translationService)
         {
-            this.modelConfig = modelConfig;
-            this.logger = logger;
+            this.modelConfig = new ModelConfig();
             this.translationService = translationService;
+            this.currentConfig = new ModelConfig.Config();
         }
 
-        public async Task LoadConfigAsync()
+        /// <summary>
+        /// Gets or sets the current configuration.
+        /// </summary>
+        public ModelConfig.Config CurrentConfig
+        {
+            get => this.currentConfig;
+            set => this.SetProperty(ref this.currentConfig, value);
+        }
+
+        /// <summary>
+        /// Loads the configuration.
+        /// </summary>
+        public void LoadConfig()
         {
             try
             {
-                CurrentConfig = await modelConfig.LoadConfigAsync();
-                logger.Log(LogLevel.Info, "Configuration loaded successfully");
+                this.CurrentConfig = this.modelConfig.Load();
+                Console.WriteLine("Configuration loaded successfully");
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Error, $"Failed to load configuration: {ex.Message}");
+                Console.WriteLine($"Failed to load configuration: {ex.Message}");
                 throw;
             }
         }
 
-        public async Task ModifyConfigAsync()
+        /// <summary>
+        /// Saves or overrides the configuration.
+        /// </summary>
+        /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
+        public bool SaveOrOverrideConfig()
         {
             try
             {
-                logger.Log(LogLevel.Info, "Starting configuration modification");
-                
-                var newConfig = await modelConfig.ModifyConfigAsync(CurrentConfig);
+                Console.WriteLine("Starting configuration modification");
+
+                var newConfig = this.modelConfig.SaveOrOverride(this.CurrentConfig);
                 if (newConfig != null)
                 {
-                    CurrentConfig = newConfig;
-                    await modelConfig.SaveConfigAsync(CurrentConfig);
-                    logger.Log(LogLevel.Info, "Configuration modified and saved successfully");
+                    this.CurrentConfig = newConfig;
+                    this.modelConfig.SaveOrOverride(this.CurrentConfig);
+                    Console.WriteLine("Configuration modified and saved successfully");
+                    return true;
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.Log(LogLevel.Error, $"Error modifying configuration: {ex.Message}");
-                throw;
-            }
-        }
 
-        public async Task SaveConfigAsync()
-        {
-            try
-            {
-                await modelConfig.SaveConfigAsync(CurrentConfig);
-                logger.Log(LogLevel.Info, "Configuration saved successfully");
+                return false;
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Error, $"Failed to save configuration: {ex.Message}");
-                throw;
+                Console.WriteLine($"Error modifying configuration: {ex.Message}");
+                return false;
             }
         }
     }
-} 
+}
