@@ -9,10 +9,12 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="EasySave">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,*" Background="black">
         <Menu Grid.Row="0">
             <MenuItem Header="File">
                 <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}"/>
+                <Separator/>
+                <MenuItem Header="Modify Config" Command="{Binding ModifyConfigCommand}"/>
                 <Separator/>
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
             </MenuItem>
@@ -23,16 +25,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-
             <ContentControl Grid.Column="0" Content="{Binding CurrentView}"/>
-            
-            <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
-                <Button Content="Save Project" 
-                        Command="{Binding SaveProjectCommand}"
-                        IsEnabled="{Binding !IsBackupInProgress}"/>
-                <Button Content="Modify Config" 
-                        Command="{Binding ModifyConfigCommand}"/>
-            </StackPanel>
         </Grid>
     </Grid>
 </Window> 

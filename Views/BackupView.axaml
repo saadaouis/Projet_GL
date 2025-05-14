@@ -31,7 +31,6 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
-                                <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>
                                 <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
                             </StackPanel>
                         </DataTemplate>
@@ -40,21 +39,26 @@
             </Grid>
 
             <!-- Backup States Section -->
-            <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="10,0,0,0">
-                <TextBlock Grid.Row="0" Text="Backup States" 
-                          FontSize="18" 
+            <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,0,10,0">
+                <TextBlock Grid.Row="0" Text="Available Backups" 
+                          FontSize="18"
                           Margin="0,0,0,10"/>
-                <DataGrid Grid.Row="1"
-                         ItemsSource="{Binding BackupStates}"
-                         AutoGenerateColumns="False"
-                         IsReadOnly="True"
-                         VerticalAlignment="Stretch">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
-                        <DataGridTextColumn Header="Progress" Binding="{Binding Progress}" Width="*"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <ListBox Grid.Row="1" 
+                         x:Name="BackupsListBox"
+                         ItemsSource="{Binding AvailableBackups}"
+                         VerticalAlignment="Stretch"
+                         SelectionMode="Single">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="black" />
+                                <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"/>
+                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
+                                <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Grid>
 
@@ -73,6 +77,9 @@
                         Spacing="10">
                 <Button Content="Save Project" 
                         Command="{Binding SaveSelectedProjectCommand}"
+                        IsEnabled="{Binding !IsBackupInProgress}"/>
+                <Button Content="Differential Backup"
+                        Command="{Binding DifferentialBackupCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
             </StackPanel>
         </Grid>

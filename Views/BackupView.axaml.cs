@@ -34,6 +34,7 @@ namespace EasySave.Views
             {
                 Console.WriteLine("BackupView attached to visual tree. Loading projects...");
                 await viewModel.LoadProjectsAsync();
+                await viewModel.LoadProjectsAsync("destination");
                 this.projectsLoaded = true; // Set flag to true after loading
                 Console.WriteLine("Projects loaded by BackupView_AttachedToVisualTree.");
             }

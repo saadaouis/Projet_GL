@@ -122,8 +122,15 @@ namespace EasySave.ViewModels
                 this.configViewModel.CurrentConfig = loadedConfig ?? new ModelConfig.Config();
                 Console.WriteLine($"MainViewModel: Initialized ConfigViewModel.CurrentConfig.Language: {this.configViewModel.CurrentConfig.Language}");
 
-                this.CurrentView = this.backupViewModel;
-                this.IsInitialized = true;
+                if (this.modelConfig.IsNewConfig)
+                {
+                    this.CurrentView = this.configViewModel;
+                }
+                else
+                {
+                    this.CurrentView = this.backupViewModel;
+                }
+                
                 Console.WriteLine("MainViewModel initialization complete. Initial view set to BackupView.");
             }
             catch (Exception ex)
