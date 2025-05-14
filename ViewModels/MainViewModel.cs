@@ -15,8 +15,8 @@ namespace EasySave.ViewModels
     /// </summary>
     public class MainViewModel : ViewModelBase
     {
-        private readonly BackupViewModel backupViewModel;
-        private readonly ConfigViewModel configViewModel;
+        public readonly BackupViewModel backupViewModel;
+        public readonly ConfigViewModel configViewModel;
         private readonly TranslationService translationService;
         private readonly ModelConfig modelConfig;
         private bool isAutoSaveEnabled;
@@ -130,7 +130,7 @@ namespace EasySave.ViewModels
                 {
                     this.CurrentView = this.backupViewModel;
                 }
-                
+
                 Console.WriteLine("MainViewModel initialization complete. Initial view set to BackupView.");
             }
             catch (Exception ex)
