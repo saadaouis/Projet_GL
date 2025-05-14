@@ -17,10 +17,14 @@ namespace EasySave.Models
     public class ModelBackup
     {
         private const int MaxProjects = 5;
-        private readonly string sourcePath = string.Empty;
-        private readonly string destinationPath = string.Empty;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
+
+        /// <summary>Gets or sets the source directory path for backups.</summary>
+        public string SourcePath { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets the destination directory path for backups.</summary>
+        public string DestinationPath { get; set; } = string.Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
@@ -30,8 +34,8 @@ namespace EasySave.Models
         /// <param name="logger">The logger instance.</param>
         public ModelBackup(string sourcePath, string destinationPath)
         {
-            this.sourcePath = sourcePath;
-            this.destinationPath = destinationPath;
+            this.SourcePath = sourcePath;
+            this.DestinationPath = destinationPath;
         }
 
         /// <summary>
@@ -39,8 +43,8 @@ namespace EasySave.Models
         /// </summary>
         public ModelBackup()
         {
-            this.sourcePath = string.Empty;
-            this.destinationPath = string.Empty;
+            this.SourcePath = string.Empty;
+            this.DestinationPath = string.Empty;
         }
 
         /// <summary>
@@ -48,17 +52,17 @@ namespace EasySave.Models
         /// </summary>
         /// <param name="directory">The directory to fetch projects from.</param>
         /// <returns>A list of projects with their details.</returns>
-        public async Task<List<Project>> FetchProjectsAsync(string directory = "destination")
+        public async Task<List<Project>> FetchProjectsAsync(string directory = "source")
         {
             string path = string.Empty;
 
             if (directory == "destination")
             {
-                path = this.destinationPath;
+                path = this.DestinationPath;
             }
             else
             {
-                path = this.sourcePath;
+                path = this.SourcePath;
             }
 
             var projects = new List<Project>();
@@ -90,12 +94,16 @@ namespace EasySave.Models
                     }
                     catch (Exception ex)
                     {
+                        Console.WriteLine($"SourcePath: {this.SourcePath}");
+                        Console.WriteLine($"DestinationPath: {this.DestinationPath}");
                         Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"SourcePath: {this.SourcePath}");
+                Console.WriteLine($"DestinationPath: {this.DestinationPath}");
                 Console.WriteLine($"Error fetching projects: {ex.Message}");
             }
 
@@ -157,10 +165,10 @@ namespace EasySave.Models
 
                 Console.WriteLine($"Starting {(isDifferential ? "differential" : "full")} backup for project: {projectName}");
 
-                string projectDir = Path.Combine(this.destinationPath, projectName);
+                string projectDir = Path.Combine(this.DestinationPath, projectName);
                 string saveTypeDir = isDifferential ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
-                string sourceDirPath = Path.Combine(this.sourcePath, projectName);
+                string sourceDirPath = Path.Combine(this.SourcePath, projectName);
 
                 // Create directories if they don't exist
                 await Task.Run(() => Directory.CreateDirectory(saveDir));

@@ -5,9 +5,12 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using EasySave.Models;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace EasySave
 {
@@ -27,7 +30,7 @@ namespace EasySave
         /// <summary>
         /// Called when the framework initialization is completed.
         /// </summary>
-        public override void OnFrameworkInitializationCompleted()
+        public override async void OnFrameworkInitializationCompleted()
         {
             if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
@@ -38,13 +41,14 @@ namespace EasySave
 
                 // Get the MainViewModel and initialize it
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
-                mainViewModel.Initialize();
+                await mainViewModel.InitializeAsync();
 
                 // Set the MainWindow
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = mainViewModel,
                 };
+                desktop.MainWindow.Show();
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -54,10 +58,11 @@ namespace EasySave
         {
             // Register services (ensure these are consistent with Program.cs or remove from Program.cs)
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
+            services.AddSingleton<ModelConfig>();
 
             // Register ViewModels (ensure these are consistent with Program.cs or remove from Program.cs)
-            services.AddTransient<BackupViewModel>();
-            services.AddTransient<ConfigViewModel>();
+            services.AddSingleton<BackupViewModel>();
+            services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
         }
     }

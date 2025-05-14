@@ -12,18 +12,9 @@
     <Grid RowDefinitions="Auto,*">
         <Menu Grid.Row="0">
             <MenuItem Header="File">
-                <MenuItem Header="Download Backup" Command="{Binding DownloadBackupCommand}"/>
                 <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}"/>
                 <Separator/>
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
-            </MenuItem>
-            <MenuItem Header="Settings">
-                <MenuItem Header="Toggle Auto-Save" 
-                          Command="{Binding ToggleAutoSaveCommand}"/>
-                <MenuItem Header="Modify Config" Command="{Binding ModifyConfigCommand}"/>
-            </MenuItem>
-            <MenuItem Header="View">
-                <MenuItem Header="Show Logs" Command="{Binding ShowLogsCommand}"/>
             </MenuItem>
         </Menu>
 
@@ -36,16 +27,11 @@
             <ContentControl Grid.Column="0" Content="{Binding CurrentView}"/>
             
             <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
-                <Button Content="Download Backup" 
-                        Command="{Binding DownloadBackupCommand}"
-                        IsEnabled="{Binding !IsBackupInProgress}"/>
                 <Button Content="Save Project" 
                         Command="{Binding SaveProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
                 <Button Content="Modify Config" 
                         Command="{Binding ModifyConfigCommand}"/>
-                <Button Content="Show Logs" 
-                        Command="{Binding ShowLogsCommand}"/>
             </StackPanel>
         </Grid>
     </Grid>

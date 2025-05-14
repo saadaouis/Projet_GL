@@ -3,13 +3,10 @@
 // </copyright>
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Avalonia.Controls;
 using EasySave.Models;
 using EasySave.Services.Translation;
-using EasySave.Views;
 
 namespace EasySave.ViewModels
 {
@@ -21,6 +18,7 @@ namespace EasySave.ViewModels
         private readonly BackupViewModel backupViewModel;
         private readonly ConfigViewModel configViewModel;
         private readonly TranslationService translationService;
+        private readonly ModelConfig modelConfig;
         private bool isAutoSaveEnabled;
         private bool isInitialized;
         private ViewModelBase currentView;
@@ -28,37 +26,30 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
-        public MainViewModel()
+        public MainViewModel(ModelConfig modelConfig, TranslationService translationService, BackupViewModel backupViewModel, ConfigViewModel configViewModel)
         {
-            this.translationService = new TranslationService();
-
-            this.backupViewModel = new BackupViewModel(this.translationService);
-            this.configViewModel = new ConfigViewModel(this.translationService);
-            this.IsAutoSaveEnabled = true;
+            this.modelConfig = modelConfig;
+            this.translationService = translationService;
+            this.backupViewModel = backupViewModel;
+            this.configViewModel = configViewModel;
+            this.configViewModel.SetMainViewModel(this);
 
             // Initialize commands
             this.SaveProjectCommand = new RelayCommand(() =>
             {
-                this.backupViewModel.SaveSelectedProjectCommand.Execute(null);
+                if (this.backupViewModel.SaveSelectedProjectCommand.CanExecute(null))
+                {
+                    this.backupViewModel.SaveSelectedProjectCommand.Execute(null);
+                }
             });
             this.ModifyConfigCommand = new RelayCommand(() =>
             {
-                this.configViewModel.SaveOrOverrideConfig();
+                Console.WriteLine("ModifyConfigCommand executed: Navigating to ConfigView.");
+                this.CurrentView = this.configViewModel;
             });
             this.ExitCommand = new RelayCommand(() => Environment.Exit(0));
 
-            // Set initial view
-            try
-            {
-                this.currentView = this.configViewModel;
-            }
-            catch (System.Exception)
-            {
-                this.currentView = this.backupViewModel;
-                Console.WriteLine("Failed to set initial view");
-                Environment.Exit(0);
-                throw;
-            }
+            // Initial view is set in InitializeAsync after config is loaded
         }
 
         /// <summary>
@@ -82,16 +73,11 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Gets or sets the current view.
         /// </summary>
-        public required ViewModelBase CurrentView
+        public ViewModelBase CurrentView
         {
             get => this.currentView;
             set => this.SetProperty(ref this.currentView, value);
         }
-
-        /// <summary>
-        /// Gets the command for toggling auto-save.
-        /// </summary>
-   /*      public ICommand ToggleAutoSaveCommand { get; } */
 
         /// <summary>
         /// Gets the command for saving a project.
@@ -109,140 +95,157 @@ namespace EasySave.ViewModels
         public ICommand ExitCommand { get; }
 
         /// <summary>
+        /// Navigates the CurrentView to the BackupView.
+        /// </summary>
+        public void NavigateToBackupView()
+        {
+            Console.WriteLine("NavigateToBackupView called: Setting CurrentView to BackupViewModel.");
+            this.CurrentView = this.backupViewModel;
+        }
+
+        /// <summary>
         /// Initializes the application.
         /// </summary>
-        public void Initialize()
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task InitializeAsync()
         {
             try
             {
-                this.configViewModel.LoadConfig();
+                var loadedConfig = this.modelConfig.Load();
+                string languageToSet = loadedConfig.Language ?? "en";
+                Console.WriteLine($"Configured language: {languageToSet}");
+                await this.translationService.SetLanguageAsync(languageToSet);
+                
+                this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;
+                this.backupViewModel.DestinationPath = loadedConfig.Destination ?? string.Empty;
+
+                this.configViewModel.CurrentConfig = loadedConfig ?? new ModelConfig.Config();
+                Console.WriteLine($"MainViewModel: Initialized ConfigViewModel.CurrentConfig.Language: {this.configViewModel.CurrentConfig.Language}");
+
+                this.CurrentView = this.backupViewModel;
                 this.IsInitialized = true;
+                Console.WriteLine("MainViewModel initialization complete. Initial view set to BackupView.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to initialize application: {ex.Message}");
-                throw;
+                Console.WriteLine($"!!! Critical error during MainViewModel InitializeAsync: {ex.ToString()}");
+                this.CurrentView = this.backupViewModel;
+                this.IsInitialized = true;
             }
         }
 
-/*         private void ToggleAutoSave()
-        {
-            this.IsAutoSaveEnabled = !this.IsAutoSaveEnabled;
-            Console.WriteLine($"Auto-save {(this.IsAutoSaveEnabled ? "enabled" : "disabled")}");
-        }
-    } */
-
-    /// <summary>
-    /// Relay command class that implements the ICommand interface.
-    /// </summary>
+        /// <summary>
+        /// Relay command class that implements the ICommand interface.
+        /// </summary>
         public class RelayCommand : ICommand
-    {
-        private readonly Action execute;
-        private readonly Func<bool>? canExecute;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RelayCommand"/> class.
-        /// </summary>
-        /// <param name="execute">The action to execute.</param>
-        /// <param name="canExecute">The function to check if the command can execute.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the execute parameter is null.</exception>
-        public RelayCommand(Action execute, Func<bool>? canExecute = null)
         {
-            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            this.canExecute = canExecute;
+            private readonly Action execute;
+            private readonly Func<bool>? canExecute;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RelayCommand"/> class.
+            /// </summary>
+            /// <param name="execute">The action to execute.</param>
+            /// <param name="canExecute">The function to check if the command can execute.</param>
+            /// <exception cref="ArgumentNullException">Thrown when the execute parameter is null.</exception>
+            public RelayCommand(Action execute, Func<bool>? canExecute = null)
+            {
+                this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                this.canExecute = canExecute;
+            }
+
+            /// <summary>
+            /// Event handler for the CanExecuteChanged event.
+            /// </summary>
+            public event EventHandler? CanExecuteChanged;
+
+            /// <summary>
+            /// Determines if the command can execute.
+            /// </summary>
+            /// <param name="parameter">The parameter to check.</param>
+            /// <returns>True if the command can execute, false otherwise.</returns>
+            public bool CanExecute(object? parameter) => this.canExecute?.Invoke() ?? true;
+
+            /// <summary>
+            /// Executes the command.
+            /// </summary>
+            /// <param name="parameter">The parameter to execute the command with.</param>
+            public void Execute(object? parameter) => this.execute();
+
+            /// <summary>
+            /// Raises the CanExecuteChanged event.
+            /// </summary>
+            public void RaiseCanExecuteChanged()
+            {
+                this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
-        /// Event handler for the CanExecuteChanged event.
+        /// Async relay command class that implements the ICommand interface.
         /// </summary>
-        public event EventHandler? CanExecuteChanged;
-
-        /// <summary>
-        /// Determines if the command can execute.
-        /// </summary>
-        /// <param name="parameter">The parameter to check.</param>
-        /// <returns>True if the command can execute, false otherwise.</returns>
-        public bool CanExecute(object? parameter) => this.canExecute?.Invoke() ?? true;
-
-        /// <summary>
-        /// Executes the command.
-        /// </summary>
-        /// <param name="parameter">The parameter to execute the command with.</param>
-        public void Execute(object? parameter) => this.execute();
-
-        /// <summary>
-        /// Raises the CanExecuteChanged event.
-        public void RaiseCanExecuteChanged()
-        {
-            this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    /// <summary>
-    /// Async relay command class that implements the ICommand interface.
-    /// </summary>
         public class AsyncRelayCommand : ICommand
         {
-        private readonly Func<Task> execute;
-        private readonly Func<bool>? canExecute;
-        private bool isExecuting;
+            private readonly Func<Task> execute;
+            private readonly Func<bool>? canExecute;
+            private bool isExecuting;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AsyncRelayCommand"/> class.
-        /// </summary>
-        /// <param name="execute">The action to execute.</param>
-        /// <param name="canExecute">The function to check if the command can execute.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the execute parameter is null.</exception>
-        public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
-        {
-            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            this.canExecute = canExecute;
-        }
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AsyncRelayCommand"/> class.
+            /// </summary>
+            /// <param name="execute">The action to execute.</param>
+            /// <param name="canExecute">The function to check if the command can execute.</param>
+            /// <exception cref="ArgumentNullException">Thrown when the execute parameter is null.</exception>
+            public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
+            {
+                this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                this.canExecute = canExecute;
+            }
 
-        /// <summary>
-        /// Event handler for the CanExecuteChanged event.
-        /// </summary>
-        public event EventHandler? CanExecuteChanged;
+            /// <summary>
+            /// Event handler for the CanExecuteChanged event.
+            /// </summary>
+            public event EventHandler? CanExecuteChanged;
 
-        /// <summary>
-        /// Determines if the command can execute.
-        /// </summary>
-        /// <param name="parameter">The parameter to check.</param>
-        /// <returns>True if the command can execute, false otherwise.</returns>
-        public bool CanExecute(object? parameter) =>
-            !this.isExecuting && (this.canExecute?.Invoke() ?? true);
+            /// <summary>
+            /// Determines if the command can execute.
+            /// </summary>
+            /// <param name="parameter">The parameter to check.</param>
+            /// <returns>True if the command can execute, false otherwise.</returns>
+            public bool CanExecute(object? parameter) =>
+                !this.isExecuting && (this.canExecute?.Invoke() ?? true);
 
-        /// <summary>
-        /// Executes the command.
-        /// </summary>
-        /// <param name="parameter">The parameter to execute the command with.</param>
-        public async void Execute(object? parameter)
-        {
-            if (!this.CanExecute(parameter))
+            /// <summary>
+            /// Executes the command.
+            /// </summary>
+            /// <param name="parameter">The parameter to execute the command with.</param>
+            public async void Execute(object? parameter)
+            {
+                if (!this.CanExecute(parameter))
                 {
                     return;
                 }
 
-            try
-            {
-                this.isExecuting = true;
-                this.RaiseCanExecuteChanged();
-                await this.execute();
+                try
+                {
+                    this.isExecuting = true;
+                    this.RaiseCanExecuteChanged();
+                    await this.execute();
+                }
+                finally
+                {
+                    this.isExecuting = false;
+                    this.RaiseCanExecuteChanged();
+                }
             }
-            finally
-            {
-                this.isExecuting = false;
-                this.RaiseCanExecuteChanged();
-            }
-        }
 
-        /// <summary>
-        /// Raises the CanExecuteChanged event.
-        /// </summary>
-        public void RaiseCanExecuteChanged()
-        {
-            this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            /// <summary>
+            /// Raises the CanExecuteChanged event.
+            /// </summary>
+            public void RaiseCanExecuteChanged()
+            {
+                this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
-}
 }

@@ -24,25 +24,19 @@
                           SelectedItem="{Binding CurrentConfig.Language}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" 
-                           Text="Log File Path:" 
+                           Text="Destination Path:" 
                            VerticalAlignment="Center"
                            Margin="0,0,10,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1"
-                         Text="{Binding CurrentConfig.LogFilePath}"/>
+                         Text="{Binding CurrentConfig.Destination}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" 
-                           Text="Status File Path:" 
+                           Text="Source Path:" 
                            VerticalAlignment="Center"
                            Margin="0,0,10,0"/>
                 <TextBox Grid.Row="2" Grid.Column="1"
-                         Text="{Binding CurrentConfig.StatusFilePath}"/>
+                         Text="{Binding CurrentConfig.Source}"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" 
-                           Text="Auto-Save:" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
-                <CheckBox Grid.Row="3" Grid.Column="1"
-                          IsChecked="{Binding CurrentConfig.AutoSave}"/>
             </Grid>
 
             <StackPanel Orientation="Horizontal" 
