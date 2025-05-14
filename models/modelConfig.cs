@@ -37,7 +37,7 @@ namespace EasySave.Models
 
         /// <summary>Loads the configuration from the config file.</summary>
         /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
-        public bool Load()
+        public Config Load()
         {
             try
             {
@@ -73,7 +73,7 @@ namespace EasySave.Models
         /// <summary>Saves the configuration to the config file.</summary>
         /// <param name="config">The configuration to save.</param>
         /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
-        public bool SaveOrOverride(Dictionary<string, string> config)
+        public Config SaveOrOverride(Config config)
         {
             try
             {
@@ -91,6 +91,13 @@ namespace EasySave.Models
                 this.logger.Log($"Error saving configuration: {ex.Message}", "error");
                 return false;
             }
+        }
+    
+        public class Config
+        {
+            public string? Source { get; set; } = string.Empty;
+            public string? Destination { get; set; } = string.Empty;
+            public string? Language { get; set; } = "En";
         }
     }
 }

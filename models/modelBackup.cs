@@ -24,11 +24,10 @@ namespace EasySave.Models
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
         /// <param name="logger">The logger instance.</param>
-        public ModelBackup(string sourcePath, string destinationPath, ILogger logger)
+        public ModelBackup(string sourcePath, string destinationPath)
         {
             this.sourcePath = sourcePath;
             this.destinationPath = destinationPath;
-            this.logger = logger;
         }
 
         /// <summary>
@@ -46,7 +45,7 @@ namespace EasySave.Models
         /// </summary>
         /// <param name="directory">The directory to fetch projects from.</param>
         /// <returns>A list of projects with their details.</returns>
-        public List<Project> FetchProjects(string directory = "destination")
+        public async Task<List<Project>> FetchProjectsAsync(string directory = "destination")
         {
             string path = string.Empty;
 
@@ -67,10 +66,10 @@ namespace EasySave.Models
                 this.logger.Log($"Fetching directories from: {path}", "info");
 
                 // Get all directories and order by last write time
-                var directories = Directory.GetDirectories(path)
+                var directories = await Task.Run(() => Directory.GetDirectories(path)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
-                    .Take(MaxProjects);
+                    .Take(MaxProjects));
 
                 this.logger.Log($"Found {directories.Count()} directories.", "info");
 
@@ -81,7 +80,7 @@ namespace EasySave.Models
                     try
                     {
                         // Calculate directory size
-                        double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
+                        double sizeInMB = await Task.Run(() => CalculateDirectorySize(dir) / (1024.0 * 1024.0));
                         this.logger.Log($"Size of {dir.Name}: {sizeInMB:F2} MB", "info");
 
                         // Create project object
@@ -115,17 +114,17 @@ namespace EasySave.Models
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
         /// <returns>The backup state for the project.</returns>
-        public BackupState GetBackupState(string projectName)
+        public async Task<BackupState> GetBackupStateAsync(string projectName)
         {
             if (!this.backupStates.ContainsKey(projectName))
             {
                 this.backupStates[projectName] = new BackupState { ProjectName = projectName };
             }
 
-            return this.backupStates[projectName];
+            return await Task.FromResult(this.backupStates[projectName]);
         }
 
-        /// <summary>
+/*         /// <summary>
         /// Toggles auto-save for a project.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -144,7 +143,7 @@ namespace EasySave.Models
                 this.StartAutoSave(new List<Project> { project }, intervalSeconds);
                 return true;
             }
-        }
+        } */
 
         /// <summary>
         /// Saves a project with the specified version number.
@@ -152,39 +151,39 @@ namespace EasySave.Models
         /// <param name="projectName">The name of the project.</param>
         /// <param name="isAutoSave">Whether this is an auto-save operation.</param>
         /// <returns>True if the save was successful, false otherwise.</returns>
-        public bool SaveProject(string projectName, bool isAutoSave = false)
+        public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false)
         {
             try
             {
                 var state = this.GetBackupState(projectName);
-                state.CurrentOperation = isAutoSave ? "Auto-saving" : "Backing up";
+                state.CurrentOperation = isDifferential ? "Differential backup" : "Full backup";
                 state.IsComplete = false;
                 state.ErrorMessage = null;
                 state.UpdateState();
 
-                this.logger.Log($"Starting {(isAutoSave ? "auto-save" : "backup")} for project: {projectName}", "info");
+                this.logger.Log($"Starting {(isDifferential ? "differential" : "full")} backup for project: {projectName}", "info");
 
                 string projectDir = Path.Combine(this.destinationPath, projectName);
-                string saveTypeDir = isAutoSave ? "updates" : "backups";
+                string saveTypeDir = isDifferential ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
                 string sourceDirPath = Path.Combine(this.sourcePath, projectName);
 
                 // Create directories if they don't exist
-                Directory.CreateDirectory(saveDir);
+                await Task.Run(() => Directory.CreateDirectory(saveDir));
                 this.logger.Log($"Created directory: {saveDir}", "info");
 
-                if (isAutoSave)
+                if (isDifferential)
                 {
-                    // For auto-save, find the latest backup directory
+                    // For differential backup, find the latest backup directory
                     string backupsDir = Path.Combine(projectDir, "backups");
                     string lastBackupDir = string.Empty;
 
                     if (Directory.Exists(backupsDir))
                     {
-                        var backupDirs = Directory.GetDirectories(backupsDir)
+                        var backupDirs = await Task.Run(() => Directory.GetDirectories(backupsDir)
                             .Select(dir => new DirectoryInfo(dir))
                             .OrderByDescending(dir => dir.LastWriteTime)
-                            .ToList();
+                            .ToList());
 
                         if (backupDirs.Any())
                         {
@@ -196,7 +195,7 @@ namespace EasySave.Models
                     // Check if there are any changes before creating a new update
                     if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
                     {
-                        this.logger.Log("No changes detected, skipping auto-save", "info");
+                        this.logger.Log("No changes detected, skipping differential backup", "info");
                         state.IsComplete = true;
                         state.CurrentOperation = "No changes detected";
                         state.UpdateState();
@@ -204,19 +203,19 @@ namespace EasySave.Models
                     }
 
                     // Get the next version number
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
+                    var (major, minor) = await Task.Run(() => GetNextVersionNumber(projectDir, isDifferential));
                     string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
                     this.logger.Log($"Creating update version: V{major}.{minor}", "info");
 
                     // Copy only modified files
                     if (!string.IsNullOrEmpty(lastBackupDir))
                     {
-                        this.CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
+                        await Task.Run(() => this.CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state));
                     }
                     else
                     {
                         // If no backup exists, copy everything
-                        if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
+                        if (!await Task.Run(() => this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state)))
                         {
                             return false;
                         }
@@ -225,10 +224,10 @@ namespace EasySave.Models
                 else
                 {
                     // For manual backups, copy everything
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
+                    var (major, minor) = GetNextVersionNumber(projectDir, isDifferential);
                     string versionDir = Path.Combine(saveDir, $"V{major}");
                     this.logger.Log($"Creating backup version: V{major}", "info");
-                    if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
+                    if (!await this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state))
                     {
                         return false;
                     }
@@ -237,12 +236,12 @@ namespace EasySave.Models
                 state.IsComplete = true;
                 state.CurrentOperation = "Complete";
                 state.UpdateState();
-                this.logger.Log($"{(isAutoSave ? "Auto-save" : "Backup")} completed successfully", "info");
+                this.logger.Log($"{(isDifferential ? "Differential" : "Full")} backup completed successfully", "info");
                 return true;
             }
             catch (Exception ex)
             {
-                var state = this.GetBackupState(projectName);
+                var state = await Task.Run(() => this.GetBackupState(projectName));
                 state.IsComplete = true;
                 state.ErrorMessage = ex.Message;
                 state.CurrentOperation = "Error";
@@ -252,7 +251,7 @@ namespace EasySave.Models
             }
         }
 
-        /// <summary>
+       /*  /// <summary>
         /// Starts auto-save for a project.
         /// </summary>
         /// <param name="projects">The list of projects to auto-save.</param>
@@ -297,8 +296,8 @@ namespace EasySave.Models
                 this.autoSaveTasks.Remove(projectName);
             }
         }
-
-         /// <summary>
+ */
+/*          /// <summary>
         /// Gets all available versions for a project.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -361,9 +360,9 @@ namespace EasySave.Models
             });
 
             return versions;
-        }
+        } */
 
-        /// <summary>
+        /* /// <summary>
         /// Downloads a specific version of a project.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -418,7 +417,7 @@ namespace EasySave.Models
                 state.UpdateState();
                 return false;
             }
-        }
+        } */
 
         /// <summary>
         /// Calculates the total size of a directory in bytes.
@@ -641,6 +640,53 @@ namespace EasySave.Models
             }
         }
 
+        private async Task<bool> CopyDirectoryRecursiveAsync(string sourceDir, string targetDir, BackupState state)
+        {
+            try
+            {
+                Directory.CreateDirectory(targetDir);
+
+                var allFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+
+                state.TotalFiles = allFiles.Count;
+                state.TotalSize = allFiles.Sum(f => f.Length);
+                state.ProcessedFiles = 0;
+                state.ProcessedSize = 0;
+                state.UpdateState();
+
+                foreach (string file in Directory.GetFiles(sourceDir))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string destFile = Path.Combine(targetDir, fileName);
+                    await File.CopyAsync(file, destFile, true);
+
+                    var fileInfo = new FileInfo(file);
+                    state.ProcessedFiles++;
+                    state.ProcessedSize += fileInfo.Length;
+                    state.UpdateState();
+                }
+
+                foreach (string subDir in Directory.GetDirectories(sourceDir))
+                {
+                    string dirName = Path.GetFileName(subDir);
+                    string destSubDir = Path.Combine(targetDir, dirName);
+                    if (!await this.CopyDirectoryRecursiveAsync(subDir, destSubDir, state))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                state.ErrorMessage = ex.Message;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Represents a backup project with its properties.
         /// </summary>
@@ -660,7 +706,7 @@ namespace EasySave.Models
             /// Gets or sets the size of the project.
             /// </summary>
             public double Size { get; set; } = 0;
-
+/* 
             /// <summary>
             /// Gets or sets a value indicating whether gets or sets whether auto-save is enabled for this project.
             /// </summary>
@@ -669,7 +715,7 @@ namespace EasySave.Models
             /// <summary>
             /// Gets or sets the auto-save interval in seconds.
             /// </summary>
-            public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes
+            public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes */
         }
     }
 }

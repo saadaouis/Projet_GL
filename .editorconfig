@@ -1,0 +1,8 @@
+[*.cs]
+
+# SA1005: Single line comments should begin with single space
+dotnet_diagnostic.SA1005.severity = none
+[*.cs]
+
+# Default severity for analyzer diagnostics with category 'StyleCop.CSharp.SpacingRules'
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
