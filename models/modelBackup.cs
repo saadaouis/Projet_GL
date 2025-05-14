@@ -2,8 +2,6 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using EasySave.Services.Logger;
-
 namespace EasySave.Models
 {
     /// <summary>
@@ -11,12 +9,11 @@ namespace EasySave.Models
     /// </summary>
     public class ModelBackup
     {
-        private const int MaxProjects = 5;
+        private const int maxProjects = 5;
         private readonly string sourcePath = string.Empty;
         private readonly string destinationPath = string.Empty;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
-        private readonly ILogger logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
