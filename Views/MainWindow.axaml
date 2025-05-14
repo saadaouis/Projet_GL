@@ -19,8 +19,7 @@
             </MenuItem>
             <MenuItem Header="Settings">
                 <MenuItem Header="Toggle Auto-Save" 
-                          Command="{Binding ToggleAutoSaveCommand}"
-                          IsChecked="{Binding IsAutoSaveEnabled}"/>
+                          Command="{Binding ToggleAutoSaveCommand}"/>
                 <MenuItem Header="Modify Config" Command="{Binding ModifyConfigCommand}"/>
             </MenuItem>
             <MenuItem Header="View">
@@ -43,9 +42,6 @@
                 <Button Content="Save Project" 
                         Command="{Binding SaveProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
-                <Button Content="Toggle Auto-Save" 
-                        Command="{Binding ToggleAutoSaveCommand}"
-                        IsChecked="{Binding IsAutoSaveEnabled}"/>
                 <Button Content="Modify Config" 
                         Command="{Binding ModifyConfigCommand}"/>
                 <Button Content="Show Logs" 

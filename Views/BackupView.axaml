@@ -19,9 +19,9 @@
             <!-- Project List -->
             <StackPanel Grid.Column="0" Margin="0,0,10,0">
                 <TextBlock Text="Available Projects" 
-                          FontSize="18" 
+                          FontSize="18"
                           Margin="0,0,0,10"/>
-                <ListBox Items="{Binding AvailableProjects}"
+                <ListBox ItemsSource="{Binding AvailableProjects}"
                          SelectedItem="{Binding SelectedProject}"
                          Height="300">
                     <ListBox.ItemTemplate>
@@ -41,7 +41,7 @@
                 <TextBlock Text="Backup States" 
                           FontSize="18" 
                           Margin="0,0,0,10"/>
-                <DataGrid Items="{Binding BackupStates}"
+                    <DataGrid ItemsSource="{Binding BackupStates}"
                          AutoGenerateColumns="False"
                          IsReadOnly="True"
                          Height="300">
