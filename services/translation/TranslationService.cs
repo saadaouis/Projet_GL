@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -15,25 +16,9 @@ namespace EasySave.Services.Translation
     /// </summary>
     public class TranslationService
     {
-        private Dictionary<string, Dictionary<string, string>> _translations;
-        private string _currentLanguage;
-        private readonly string _translationsPath;
-
-        /// <summary>
-        /// Gets or sets the current language.
-        /// </summary>
-        public string CurrentLanguage
-        {
-            get => this._currentLanguage;
-            set
-            {
-                if (this._currentLanguage != value)
-                {
-                    this._currentLanguage = value;
-                    this.LoadTranslationsAsync().Wait();
-                }
-            }
-        }
+        private readonly string translationsPath;
+        private Dictionary<string, Dictionary<string, string>> translations;
+        private string currentLanguage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TranslationService"/> class.
@@ -41,9 +26,25 @@ namespace EasySave.Services.Translation
         /// <param name="translationsPath">Path to the translations file.</param>
         public TranslationService(string translationsPath = "resources/translations.json")
         {
-            this._translationsPath = translationsPath;
-            this._translations = new Dictionary<string, Dictionary<string, string>>();
-            this._currentLanguage = "en"; // Default language
+            this.translationsPath = translationsPath;
+            this.translations = new Dictionary<string, Dictionary<string, string>>();
+            this.currentLanguage = "en"; // Default language
+        }
+
+        /// <summary>
+        /// Gets or sets the current language.
+        /// </summary>
+        public string CurrentLanguage
+        {
+            get => this.currentLanguage;
+            set
+            {
+                if (this.currentLanguage != value)
+                {
+                    this.currentLanguage = value;
+                    this.LoadTranslationsAsync().Wait();
+                }
+            }
         }
 
         /// <summary>
@@ -54,13 +55,13 @@ namespace EasySave.Services.Translation
         {
             try
             {
-                if (!File.Exists(this._translationsPath))
+                if (!File.Exists(this.translationsPath))
                 {
-                    throw new FileNotFoundException($"Translations file not found at {this._translationsPath}");
+                    throw new FileNotFoundException($"Translations file not found at {this.translationsPath}");
                 }
 
-                string jsonContent = await File.ReadAllTextAsync(this._translationsPath);
-                this._translations = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonContent)
+                string jsonContent = await File.ReadAllTextAsync(this.translationsPath);
+                this.translations = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonContent)
                     ?? throw new InvalidOperationException("Failed to deserialize translations file");
             }
             catch (Exception ex)
@@ -76,15 +77,15 @@ namespace EasySave.Services.Translation
         /// <returns>The translated string.</returns>
         public string GetTranslation(string key)
         {
-            if (this._translations.TryGetValue(this._currentLanguage, out var languageTranslations) &&
+            if (this.translations.TryGetValue(this.currentLanguage, out var languageTranslations) &&
                 languageTranslations.TryGetValue(key, out var translation))
             {
                 return translation;
             }
 
             // Fallback to English if translation not found
-            if (this._currentLanguage != "en" &&
-                this._translations.TryGetValue("en", out var englishTranslations) &&
+            if (this.currentLanguage != "en" &&
+                this.translations.TryGetValue("en", out var englishTranslations) &&
                 englishTranslations.TryGetValue(key, out var englishTranslation))
             {
                 return englishTranslation;
@@ -99,7 +100,7 @@ namespace EasySave.Services.Translation
         /// <returns>An array of available language codes.</returns>
         public string[] GetAvailableLanguages()
         {
-            return this._translations.Keys.ToArray();
+            return this.translations.Keys.ToArray();
         }
     }
 } 

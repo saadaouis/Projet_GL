@@ -2,6 +2,9 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Threading.Tasks;
+
 namespace EasySave.Models
 {
     /// <summary>
@@ -67,9 +70,10 @@ namespace EasySave.Models
         /// <summary>
         /// Updates the backup state and raises the StateChanged event.
         /// </summary>
-        public void UpdateState()
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task UpdateStateAsync()
         {
-            this.StateChanged?.Invoke(this, this);
+            await Task.Run(() => this.StateChanged?.Invoke(this, this));
         }
     }
 }

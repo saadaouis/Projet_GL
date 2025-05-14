@@ -2,9 +2,11 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasySave.Services.Logger;
 
 namespace EasySave.Models
 {
@@ -12,15 +14,13 @@ namespace EasySave.Models
     public class ModelConfig
     {
         private readonly string configPath;
-        private readonly ILogger logger;
 
-                /// <summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
         /// </summary>
         public ModelConfig()
         {
             this.configPath = "json/config.json";
-            this.logger = new FileLogger();
         }
 
         /// <summary>Gets or sets the source directory path.</summary>
@@ -43,30 +43,31 @@ namespace EasySave.Models
             {
                 if (!File.Exists(this.configPath))
                 {
-                    this.logger.Log("Config file not found", "warning");
-                    return false;
+                    Console.WriteLine("Config file not found");
+                    return new Config();
                 }
 
                 string jsonString = File.ReadAllText(this.configPath);
                 var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-                this.logger.Log($"Config file found: {this.configPath}", "info");
+                Console.WriteLine($"Config file found: {this.configPath}");
 
                 if (config != null)
                 {
-                    this.Source = config.GetValueOrDefault("Source");
-                    this.Destination = config.GetValueOrDefault("Destination");
-                    this.Language = config.GetValueOrDefault("Language");
-                    this.logger.Log("Configuration loaded successfully", "info");
-                    return true;
+                    var configClass = new Config();
+                    configClass.Source = config.GetValueOrDefault("Source");
+                    configClass.Destination = config.GetValueOrDefault("Destination");
+                    configClass.Language = config.GetValueOrDefault("Language");
+                    Console.WriteLine("Configuration loaded successfully");
+                    return configClass;
                 }
 
-                this.logger.Log("Failed to deserialize config file", "error");
-                return false;
+                Console.WriteLine("Failed to deserialize config file");
+                return new Config();
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error loading configuration: {ex.Message}", "error");
-                return false;
+                Console.WriteLine($"Error loading configuration: {ex.Message}");
+                return new Config();
             }
         }
 
@@ -83,20 +84,28 @@ namespace EasySave.Models
                 });
 
                 File.WriteAllText(this.configPath, jsonString);
-                this.logger.Log("Configuration saved successfully", "info");
-                return true;
+                Console.WriteLine("Configuration saved successfully");
+                return config;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error saving configuration: {ex.Message}", "error");
-                return false;
+                Console.WriteLine($"Error saving configuration: {ex.Message}");
+                return config;
             }
         }
-    
+
+        /// <summary>
+        /// Config class for handling application settings.
+        /// </summary>
         public class Config
         {
+            /// <summary>Gets or sets the source directory path.</summary>
             public string? Source { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the destination directory path.</summary>
             public string? Destination { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the application language.</summary>
             public string? Language { get; set; } = "En";
         }
     }
