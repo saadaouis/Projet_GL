@@ -2,14 +2,8 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using EasySave.Services.Logger;
-using EasySave.Services.Translation;
-using EasySave.ViewModels;
-using EasySave.Views;
-using Microsoft.Extensions.DependencyInjection;
 using System;
+using Avalonia;
 
 namespace EasySave
 {
@@ -21,33 +15,18 @@ namespace EasySave
         /// <summary>
         /// Main method.
         /// </summary>
+        /// <param name="args">The command-line arguments.</param>
+        [STAThread]
         public static void Main(string[] args)
         {
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-
-            var serviceProvider = services.BuildServiceProvider();
-
             BuildAvaloniaApp()
-                .StartWithClassicDesktopLifetime(args, desktop =>
-                {
-                    desktop.MainWindow = new MainWindow(serviceProvider.GetRequiredService<MainViewModel>());
-                });
+                .StartWithClassicDesktopLifetime(args);
         }
 
-        private static void ConfigureServices(IServiceCollection services)
-        {
-            // Register services
-            services.AddSingleton<ILogger, DualTerminalLogger>();
-            services.AddSingleton<TranslationService>();
-
-            // Register ViewModels
-            services.AddTransient<BackupViewModel>();
-            services.AddTransient<ConfigViewModel>();
-            services.AddTransient<LogViewModel>();
-            services.AddSingleton<MainViewModel>();
-        }
-
+        /// <summary>
+        /// Builds the Avalonia application.
+        /// </summary>
+        /// <returns>The AppBuilder instance.</returns>
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
