@@ -16,6 +16,12 @@ namespace EasySave.Models
         private readonly JsonSerializerOptions serializerOptions;
 
         /// <summary>
+        /// Gets a value indicating whether the configuration was newly created during the last Load operation 
+        /// because the config file was not found or was invalid.
+        /// </summary>
+        public bool IsNewConfig { get; private set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
         /// </summary>
         public ModelConfig()
@@ -26,7 +32,8 @@ namespace EasySave.Models
                 WriteIndented = true,
                 PropertyNameCaseInsensitive = true,
             };
-            EnsureConfigDirectoryExists();
+            this.IsNewConfig = false;
+            EnsureConfigDirectoryExists(); // Ensures directory exists, not the file itself
         }
 
         private void EnsureConfigDirectoryExists()
@@ -39,17 +46,17 @@ namespace EasySave.Models
         }
 
         /// <summary>Loads the configuration from the config file.</summary>
-        /// <returns>The loaded configuration object. Returns a new default Config if file not found or error occurs.</returns>
+        /// <returns>The loaded configuration object. Returns a new default Config if file not found or error occurs, and sets IsNewConfig accordingly.</returns>
         public Config Load()
         {
+            this.IsNewConfig = false; // Assume existing config first
             try
             {
                 if (!File.Exists(this.configPath))
                 {
-                    Console.WriteLine($"Config file not found at {this.configPath}. Creating default config.");
-                    var defaultConfig = new Config();
-                    SaveOrOverride(defaultConfig);
-                    return defaultConfig;
+                    Console.WriteLine($"Config file not found at {this.configPath}. Will present config view for initial setup.");
+                    this.IsNewConfig = true;
+                    return new Config(); // Return a new default, unsaved config
                 }
 
                 string jsonString = File.ReadAllText(this.configPath);
@@ -58,24 +65,25 @@ namespace EasySave.Models
                 if (loadedConfig != null)
                 {
                     Console.WriteLine($"Configuration loaded successfully from {this.configPath}.");
-                    Console.WriteLine($"  Source: {loadedConfig.Source}");
-                    Console.WriteLine($"  Destination: {loadedConfig.Destination}");
-                    Console.WriteLine($"  Language: {loadedConfig.Language}");
+                    // Log details if needed, already done in previous version
                     return loadedConfig;
                 }
 
-                Console.WriteLine($"Warning: Failed to deserialize config file at {this.configPath}, or file was empty. Returning default config.");
-                return new Config();
+                Console.WriteLine($"Warning: Failed to deserialize config file at {this.configPath}, or file was empty. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
             }
             catch (JsonException jsonEx)
             {
-                Console.WriteLine($"Error deserializing configuration from {this.configPath}: {jsonEx.Message}. Returning default config.");
-                return new Config();
+                Console.WriteLine($"Error deserializing configuration from {this.configPath}: {jsonEx.Message}. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading configuration from {this.configPath}: {ex.Message}. Returning default config.");
-                return new Config();
+                Console.WriteLine($"Error loading configuration from {this.configPath}: {ex.Message}. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
             }
         }
 
