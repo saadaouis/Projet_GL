@@ -64,6 +64,11 @@ This part concerns the software architecture & design choices for this project. 
 - Possibility to access distant directories using SSH Connections V2.0
 - Ability to download projects (Mainly usefull in distant directories)V1.0
 
+## Use case diagram
+The Use Case Diagram represent the several interactions the user have with the application. It shows all of the options the user can choose from.
+
+[use case diagram] (ressources/usecase_diagram.png)
+
 ## Activity diagram
 The Activity Diagram outlines the flow of actions within Easysave, from initialization to performing backup tasks. It provides a clear view of how user actions translate into system processes, showing decision points, process flows, and data interactions between the core components.
 
