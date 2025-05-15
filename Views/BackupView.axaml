@@ -51,7 +51,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="black" />
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="gray" />
                                 <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"/>
                                 <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
                                 <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>

@@ -20,18 +20,11 @@ namespace EasySave.Models
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
 
-        /// <summary>Gets or sets the source directory path for backups.</summary>
-        public string SourcePath { get; set; } = string.Empty;
-
-        /// <summary>Gets or sets the destination directory path for backups.</summary>
-        public string DestinationPath { get; set; } = string.Empty;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
         /// </summary>
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
-        /// <param name="logger">The logger instance.</param>
         public ModelBackup(string sourcePath, string destinationPath)
         {
             this.SourcePath = sourcePath;
@@ -46,6 +39,12 @@ namespace EasySave.Models
             this.SourcePath = string.Empty;
             this.DestinationPath = string.Empty;
         }
+
+        ///<summary>Gets or sets the source directory path for backups.</summary>
+        public string SourcePath { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets the destination directory path for backups.</summary>
+        public string DestinationPath { get; set; } = string.Empty;
 
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
@@ -567,8 +566,7 @@ namespace EasySave.Models
 
                 // 1. Get all source files
                 var allSourceFiles = await Task.Run(() => 
-                    sourceDirectoryInfo.GetFiles("*.*", SearchOption.AllDirectories).ToList()
-                );
+                    sourceDirectoryInfo.GetFiles("*.*", SearchOption.AllDirectories).ToList());
 
                 // 2. Filter for modified files
                 var modifiedFiles = new List<FileInfo>();
@@ -594,12 +592,14 @@ namespace EasySave.Models
                 // 3. & 4. Set totals based on modified files
                 state.TotalFiles = modifiedFiles.Count;
                 state.TotalSize = modifiedFiles.Sum(f => f.Length);
+
                 // 5. Initialize processed
                 state.ProcessedFiles = 0;
                 state.ProcessedSize = 0;
                 
                 // 6. Initial state update
                 await state.UpdateStateAsync();
+
                 // 7. Report initial progress
                 progressReporter?.Report(0); 
 
@@ -630,9 +630,11 @@ namespace EasySave.Models
             {
                 Console.WriteLine($"Error in CopyModifiedFilesWithProgressAsync: {ex.Message}");
                 state.ErrorMessage = $"Error during differential copy: {ex.Message}";
+
                 // Report current progress before marking as error. If TotalSize is 0, report 0.
                 progressReporter?.Report(state.TotalSize > 0 ? state.SizeProgressPercentage : 0);
                 await state.UpdateStateAsync(); 
+
                 // Do not mark IsComplete here, let SaveProjectAsync handle final state on exception
                 throw; // Re-throw to be caught by SaveProjectAsync
             }
@@ -653,12 +655,12 @@ namespace EasySave.Models
                     state.TotalSize = allFilesForSizeCalc.Sum(f => f.Length);
                     state.ProcessedFiles = 0;
                     state.ProcessedSize = 0;
+
                     // Initial report of 0% for this specific operation if it's the top-level call
                     // For recursive calls, this might report 0 multiple times, but overall progress handles aggregation.
                     progressReporter?.Report(0); 
                     await state.UpdateStateAsync();
                 }
-
 
                 foreach (var fileInfo in sourceDirectoryInfo.GetFiles())
                 {
@@ -675,6 +677,7 @@ namespace EasySave.Models
                 {
                     string dirName = Path.GetFileName(subDir.FullName); // Use FullName for consistency
                     string destSubDir = Path.Combine(targetDir, dirName);
+
                     // For recursive calls, we don't reset TotalFiles/TotalSize here.
                     // The progress reported will be for its segment of files.
                     if (!await this.CopyDirectoryRecursiveAsync(subDir.FullName, destSubDir, state, progressReporter))
@@ -682,6 +685,7 @@ namespace EasySave.Models
                         return false; // Propagate failure
                     }
                 }
+                
                 return true;
             }
             catch (Exception ex)

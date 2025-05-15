@@ -2,15 +2,15 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using EasySave.Models;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
-using System.Threading.Tasks;
-using Avalonia.Controls;
 
 namespace EasySave
 {

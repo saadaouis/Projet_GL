@@ -16,12 +16,6 @@ namespace EasySave.Models
         private readonly JsonSerializerOptions serializerOptions;
 
         /// <summary>
-        /// Gets a value indicating whether the configuration was newly created during the last Load operation 
-        /// because the config file was not found or was invalid.
-        /// </summary>
-        public bool IsNewConfig { get; private set; }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
         /// </summary>
         public ModelConfig()
@@ -33,17 +27,14 @@ namespace EasySave.Models
                 PropertyNameCaseInsensitive = true,
             };
             this.IsNewConfig = false;
-            EnsureConfigDirectoryExists(); // Ensures directory exists, not the file itself
+            this.EnsureConfigDirectoryExists(); // Ensures directory exists, not the file itself
         }
 
-        private void EnsureConfigDirectoryExists()
-        {
-            var directory = Path.GetDirectoryName(this.configPath);
-            if (directory != null && !Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-        }
+        /// <summary>
+        /// Gets a value indicating whether the configuration was newly created during the last Load operation 
+        /// because the config file was not found or was invalid.
+        /// </summary>
+        public bool IsNewConfig { get; private set; }
 
         /// <summary>Loads the configuration from the config file.</summary>
         /// <returns>The loaded configuration object. Returns a new default Config if file not found or error occurs, and sets IsNewConfig accordingly.</returns>
@@ -65,6 +56,7 @@ namespace EasySave.Models
                 if (loadedConfig != null)
                 {
                     Console.WriteLine($"Configuration loaded successfully from {this.configPath}.");
+                    
                     // Log details if needed, already done in previous version
                     return loadedConfig;
                 }
@@ -104,6 +96,15 @@ namespace EasySave.Models
             {
                 Console.WriteLine($"Error saving configuration to {this.configPath}: {ex.Message}");
                 return configToSave;
+            }
+        }
+
+        private void EnsureConfigDirectoryExists()
+        {
+            var directory = Path.GetDirectoryName(this.configPath);
+            if (directory != null && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
             }
         }
 
