@@ -49,6 +49,7 @@ namespace EasySave.ViewModels
             // Initialize commands
             this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync());
             this.RefreshBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync("destination"));
+            this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await this.RefreshAll());
             this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync());
             this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync(true));
 /*          this.DownloadBackupCommand = new AsyncRelayCommand(async () => await this.DownloadSelectedProjectAsync()); */
@@ -148,6 +149,11 @@ namespace EasySave.ViewModels
         /// Gets the differential backup command.
         /// </summary>
         public ICommand DifferentialBackupCommand { get; }
+
+        /// <summary>
+        /// Gets the refresh all command.
+        /// </summary>
+        public ICommand RefreshAllCommand { get; }
 
         /// <summary>
         /// Get the backup states.
@@ -298,6 +304,16 @@ namespace EasySave.ViewModels
                 
                 Console.WriteLine($"Final Overall Progress: {this.OverallProgress:F2}%");
             }
+        }
+
+        /// <summary>
+        /// Refreshes all projects and backups.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RefreshAll()
+        {
+            await this.LoadProjectsAsync();
+            await this.LoadProjectsAsync("destination");
         }
 
         /* private async Task DownloadSelectedProjectAsync()

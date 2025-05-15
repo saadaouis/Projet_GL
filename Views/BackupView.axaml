@@ -12,7 +12,7 @@
             <TextBlock Text="Backup Operations" 
                       FontSize="24"/>
             <Button Content="Refresh Projects" 
-                    Command="{Binding RefreshProjectsCommand}"/>
+                    Command="{Binding RefreshAllCommand}"/>
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*">
