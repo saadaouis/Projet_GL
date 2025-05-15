@@ -15,8 +15,8 @@ namespace EasySave.ViewModels
     /// </summary>
     public class MainViewModel : ViewModelBase
     {
-        public readonly BackupViewModel backupViewModel;
-        public readonly ConfigViewModel configViewModel;
+        private readonly BackupViewModel backupViewModel;
+        private readonly ConfigViewModel configViewModel;
         private readonly TranslationService translationService;
         private readonly ModelConfig modelConfig;
         private bool isAutoSaveEnabled;
@@ -50,7 +50,7 @@ namespace EasySave.ViewModels
             this.ModifyConfigCommand = new RelayCommand(() =>
             {
                 Console.WriteLine("ModifyConfigCommand executed: Navigating to ConfigView.");
-                this.currentView = this.configViewModel;
+                this.CurrentView = this.configViewModel;
             });
             this.ExitCommand = new RelayCommand(() => Environment.Exit(0));
 
@@ -144,6 +144,35 @@ namespace EasySave.ViewModels
                 this.CurrentView = this.backupViewModel;
                 this.IsInitialized = true;
             }
+        }
+
+        /// <summary>
+        /// Refreshes the projects and backups.
+        /// </summary>
+        public void RefreshProjects()
+        {
+            this.backupViewModel.RefreshProjectsCommand.Execute(null);
+            this.backupViewModel.RefreshBackupCommand.Execute(null);
+        }
+
+        /// <summary>
+        /// Changes the paths of the projects and backups.
+        /// </summary>
+        /// <param name="source">The source path.</param>
+        /// <param name="destination">The destination path.</param>
+        public void ChangePaths(string? source, string? destination)
+        {
+            if (source != null)
+            {
+                this.backupViewModel.SourcePath = source;
+            }
+
+            if (destination != null)
+            {
+                this.backupViewModel.DestinationPath = destination;
+            }
+
+            this.RefreshProjects();
         }
 
         /// <summary>
