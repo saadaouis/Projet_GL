@@ -26,6 +26,10 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
+        /// <param name="modelConfig">The model configuration.</param>
+        /// <param name="translationService">The translation service.</param>
+        /// <param name="backupViewModel">The backup view model.</param>
+        /// <param name="configViewModel">The config view model.</param>
         public MainViewModel(ModelConfig modelConfig, TranslationService translationService, BackupViewModel backupViewModel, ConfigViewModel configViewModel)
         {
             this.modelConfig = modelConfig;
@@ -33,6 +37,7 @@ namespace EasySave.ViewModels
             this.backupViewModel = backupViewModel;
             this.configViewModel = configViewModel;
             this.configViewModel.SetMainViewModel(this);
+            this.currentView = this.configViewModel;
 
             // Initialize commands
             this.SaveProjectCommand = new RelayCommand(() =>
@@ -45,7 +50,7 @@ namespace EasySave.ViewModels
             this.ModifyConfigCommand = new RelayCommand(() =>
             {
                 Console.WriteLine("ModifyConfigCommand executed: Navigating to ConfigView.");
-                this.CurrentView = this.configViewModel;
+                this.currentView = this.configViewModel;
             });
             this.ExitCommand = new RelayCommand(() => Environment.Exit(0));
 

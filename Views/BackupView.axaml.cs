@@ -2,12 +2,12 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System; // Added for EventArgs
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using EasySave.ViewModels;
-using System; // Added for EventArgs
 
 namespace EasySave.Views
 {
@@ -44,7 +44,7 @@ namespace EasySave.Views
         {
             if (this.DataContext is BackupViewModel viewModel && sender is ListBox listBox)
             {
-                viewModel.UpdateSelectedProjects(listBox.SelectedItems.Cast<object>());
+                viewModel.UpdateSelectedProjects(listBox.SelectedItems?.Cast<object>() ?? Enumerable.Empty<object>());
             }
         }
     }

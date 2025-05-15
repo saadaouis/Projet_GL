@@ -48,6 +48,7 @@ namespace EasySave.Services.Translation
         /// Sets the current language and loads the corresponding translations.
         /// </summary>
         /// <param name="newLanguage">The new language code (e.g., "en", "fr").</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SetLanguageAsync(string newLanguage)
         {
             if (string.IsNullOrEmpty(newLanguage)) 
@@ -91,8 +92,8 @@ namespace EasySave.Services.Translation
                 string jsonContent = await File.ReadAllTextAsync(this.translationsPath).ConfigureAwait(false);
                 
                 Console.WriteLine("File.ReadAllTextAsync completed.");
-                // Console.WriteLine($"Translations file content: {jsonContent.Substring(0, Math.Min(jsonContent.Length, 500))}..."); // Log snippet
 
+                // Console.WriteLine($"Translations file content: {jsonContent.Substring(0, Math.Min(jsonContent.Length, 500))}..."); // Log snippet
                 var loadedTranslations = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonContent);
 
                 if (loadedTranslations == null)
@@ -101,6 +102,7 @@ namespace EasySave.Services.Translation
                     this.translations = new Dictionary<string, Dictionary<string, string>>(); // Ensure translations is not null
                     throw new InvalidOperationException("Failed to deserialize translations file, result is null.");
                 }
+
                 this.translations = loadedTranslations;
                 Console.WriteLine($"Translations deserialized. Available languages in file: {string.Join(", ", this.translations.Keys)}");
                 Console.WriteLine($"Translations loaded successfully for requested language: {this.currentLanguage}");
@@ -131,6 +133,7 @@ namespace EasySave.Services.Translation
                 Console.WriteLine("Warning: Translations not loaded, attempting to get translation for key: " + key);
                 return key; // Or throw, or attempt a load
             }
+
             if (this.translations.TryGetValue(this.currentLanguage, out var languageTranslations) &&
                 languageTranslations.TryGetValue(key, out var translation))
             {

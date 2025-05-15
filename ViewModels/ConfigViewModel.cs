@@ -43,15 +43,6 @@ namespace EasySave.ViewModels
         }
 
         /// <summary>
-        /// Sets the reference to the MainViewModel for navigation purposes.
-        /// </summary>
-        /// <param name="mainVm">The main view model instance.</param>
-        public void SetMainViewModel(MainViewModel mainVm)
-        {
-            this.mainViewModel = mainVm;
-        }
-
-        /// <summary>
         /// Gets or sets the current configuration being edited.
         /// </summary>
         public ModelConfig.Config CurrentConfig
@@ -82,6 +73,15 @@ namespace EasySave.ViewModels
         /// </summary>
         public ICommand CancelCommand { get; }
 
+        /// <summary>
+        /// Sets the reference to the MainViewModel for navigation purposes.
+        /// </summary>
+        /// <param name="mainVm">The main view model instance.</param>
+        public void SetMainViewModel(MainViewModel mainVm)
+        {
+            this.mainViewModel = mainVm;
+        }
+
         private bool CanExecuteSaveConfig()
         {
             return this.CurrentConfig != null;
@@ -89,13 +89,16 @@ namespace EasySave.ViewModels
 
         private async Task ExecuteSaveConfigAsync()
         {
-            if (this.CurrentConfig == null) return;
+            if (this.CurrentConfig == null)
+            {
+                return;
+            }
 
             Console.WriteLine("Saving configuration...");
             string previousLanguage = this.originalConfig.Language ?? "en";
 
             this.modelConfig.SaveOrOverride(this.CurrentConfig);
-            this.originalConfig = CloneConfig(this.CurrentConfig);
+            this.originalConfig = this.CloneConfig(this.CurrentConfig);
 
             Console.WriteLine("Configuration saved.");
 
@@ -104,10 +107,11 @@ namespace EasySave.ViewModels
                 Console.WriteLine($"Language changed from {previousLanguage} to {this.CurrentConfig.Language}. Updating TranslationService.");
                 await this.translationService.SetLanguageAsync(this.CurrentConfig.Language ?? "en");
             }
-            this.mainViewModel.backupViewModel.SourcePath = this.CurrentConfig.Source ?? string.Empty;
-            this.mainViewModel.backupViewModel.DestinationPath = this.CurrentConfig.Destination ?? string.Empty;
-            this.mainViewModel.backupViewModel.RefreshProjectsCommand.Execute(null);
-            this.mainViewModel.backupViewModel.RefreshBackupCommand.Execute(null);
+            
+            this.mainViewModel!.backupViewModel.SourcePath = this.CurrentConfig.Source ?? string.Empty;
+            this.mainViewModel!.backupViewModel.DestinationPath = this.CurrentConfig.Destination ?? string.Empty;
+            this.mainViewModel!.backupViewModel.RefreshProjectsCommand.Execute(null);
+            this.mainViewModel!.backupViewModel.RefreshBackupCommand.Execute(null);
 
             // Navigate back to the main/backup view
             this.mainViewModel?.NavigateToBackupView();
@@ -116,14 +120,19 @@ namespace EasySave.ViewModels
         private void ExecuteCancel()
         {
             Console.WriteLine("Cancelling configuration changes.");
-            this.CurrentConfig = CloneConfig(this.originalConfig);
+            this.CurrentConfig = this.CloneConfig(this.originalConfig);
+
             // Also navigate back on cancel
             this.mainViewModel?.NavigateToBackupView(); 
         }
 
         private ModelConfig.Config CloneConfig(ModelConfig.Config configToClone)
         {
-            if (configToClone == null) return new ModelConfig.Config();
+            if (configToClone == null)
+            {
+                return new ModelConfig.Config();
+            }
+
             return new ModelConfig.Config
             {
                 Source = configToClone.Source,

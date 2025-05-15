@@ -28,12 +28,7 @@ namespace EasySave.ViewModels
         private string sourcePath;
         private string destinationPath;
 
-        /// <summary>
-        /// Gets the collection of currently selected projects.
-        /// </summary>
-        public ObservableCollection<ModelBackup.Project> SelectedProjects { get; }
-
-        /// <summary>
+                /// <summary>
         /// Initializes a new instance of the <see cref="BackupViewModel"/> class.
         /// </summary>
         /// <param name="logger">The logger.</param>
@@ -58,6 +53,11 @@ namespace EasySave.ViewModels
             this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync(true));
 /*          this.DownloadBackupCommand = new AsyncRelayCommand(async () => await this.DownloadSelectedProjectAsync()); */
         }
+
+        /// <summary>
+        /// Gets the collection of currently selected projects.
+        /// </summary>
+        public ObservableCollection<ModelBackup.Project> SelectedProjects { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the backup is in progress.
@@ -189,6 +189,21 @@ namespace EasySave.ViewModels
         }
 
         /// <summary>
+        /// Update the selected projects.
+        /// </summary>
+        /// <param name="selectedItems">The selected items.</param>
+        public void UpdateSelectedProjects(IEnumerable<object> selectedItems)
+        {
+            this.SelectedProjects.Clear();
+            foreach (var item in selectedItems.OfType<ModelBackup.Project>())
+            {
+                this.SelectedProjects.Add(item);
+            }
+            
+            Console.WriteLine($"Selected projects updated. Count: {this.SelectedProjects.Count}");
+        }
+
+        /// <summary>
         /// Saves the currently selected projects.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
@@ -215,6 +230,7 @@ namespace EasySave.ViewModels
                 if (this.AvailableProjects.Count + this.SelectedProjects.Count > 5 && !this.SelectedProjects.All(sp => this.AvailableProjects.Any(ap => ap.Name == sp.Name)))
                 {
                     Console.WriteLine("Adding these projects would exceed the maximum number of projects.");
+
                     // Potentially provide more specific feedback to the user
                     this.IsBackupInProgress = false; // Ensure progress bar is hidden
                     return;
@@ -241,9 +257,11 @@ namespace EasySave.ViewModels
                     {
                         allSucceeded = false;
                         Console.WriteLine($"Project {project.Name} failed to save.");
+
                         // Optionally, decide if you want to stop on first failure or continue
                         // break; // Uncomment to stop on first failure
                     }
+
                     // Ensure overall progress reflects full completion of this project if successful
                     this.OverallProgress = (projectsBackedUpSoFar * 100.0) / totalProjectsToBackup;
                 }
@@ -260,33 +278,26 @@ namespace EasySave.ViewModels
             {
                 Console.WriteLine($"Error during batch backup: {ex.Message}");
                 allSucceeded = false; // Mark as failed
+
                 // OverallProgress will be at its last reported state or could be set to 0 or a specific error indication
             }
             finally
             {
                 this.IsBackupInProgress = false;
-                if (!allSucceeded && totalProjectsToBackup > 0) {
+                if (!allSucceeded && totalProjectsToBackup > 0) 
+                {
                     // If not all succeeded, ensure progress isn't stuck at 100%
                     // It will be at the progress of the last successfully completed segment + partial of failed one.
                     // Or, explicitly set to 0 or an error value if preferred.
                     // For now, it will reflect the actual progress made before failure.
                 }
-                else if (totalProjectsToBackup == 0) {
+                else if (totalProjectsToBackup == 0) 
+                {
                   this.OverallProgress = 0; // No projects, no progress.
                 }
-                 Console.WriteLine($"Final Overall Progress: {this.OverallProgress:F2}%");
+                
+                Console.WriteLine($"Final Overall Progress: {this.OverallProgress:F2}%");
             }
-        }
-
-        // Method to be called from View code-behind to update SelectedProjects
-        public void UpdateSelectedProjects(IEnumerable<object> selectedItems)
-        {
-            this.SelectedProjects.Clear();
-            foreach (var item in selectedItems.OfType<ModelBackup.Project>())
-            {
-                this.SelectedProjects.Add(item);
-            }
-            Console.WriteLine($"Selected projects updated. Count: {this.SelectedProjects.Count}");
         }
 
         /* private async Task DownloadSelectedProjectAsync()

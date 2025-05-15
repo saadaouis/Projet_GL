@@ -4,6 +4,7 @@
 
 using Avalonia.Controls;
 using EasySave.ViewModels;
+
 namespace EasySave.Views
 {
     /// <summary>
@@ -15,6 +16,10 @@ namespace EasySave.Views
         /// Initializes a new instance of the <see cref="ConfigView"/> class.
         /// </summary>
         private string language = "En";
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigView"/> class.
+        /// </summary>
         public ConfigView()
         {
             this.InitializeComponent();
@@ -24,7 +29,7 @@ namespace EasySave.Views
         {
             if (this.DataContext is ConfigViewModel viewModel && sender is ComboBox comboBox)
             {
-                viewModel.CurrentConfig.Language = comboBox.SelectedItem as string;
+                viewModel.CurrentConfig.Language = comboBox.SelectedItem as string ?? "En";
             }
         }
     }
