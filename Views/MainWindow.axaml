@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:EasySave.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="EasySave.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="EasySave">
+
+    <Grid RowDefinitions="Auto,*" Background="black">
+        <Menu Grid.Row="0">
+            <MenuItem Header="File">
+                <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}"/>
+                <Separator/>
+                <MenuItem Header="Modify Config" Command="{Binding ModifyConfigCommand}"/>
+                <Separator/>
+                <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ContentControl Grid.Column="0" Content="{Binding CurrentView}"/>
+        </Grid>
+    </Grid>
+</Window> 

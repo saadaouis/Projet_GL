@@ -2,7 +2,8 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using EasySave.Controllers;
+using System;
+using Avalonia;
 
 namespace EasySave
 {
@@ -14,11 +15,21 @@ namespace EasySave
         /// <summary>
         /// Main method.
         /// </summary>
-        private static void Main(string[] args)
+        /// <param name="args">The command-line arguments.</param>
+        [STAThread]
+        public static void Main(string[] args)
         {
-            Controller controller = new Controller();
-            controller.Initialization();
-            Console.WriteLine("Shutting down...");
+            BuildAvaloniaApp()
+                .StartWithClassicDesktopLifetime(args);
         }
+
+        /// <summary>
+        /// Builds the Avalonia application.
+        /// </summary>
+        /// <returns>The AppBuilder instance.</returns>
+        public static AppBuilder BuildAvaloniaApp()
+            => AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .LogToTrace();
     }
 }

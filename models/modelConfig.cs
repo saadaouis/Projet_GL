@@ -2,9 +2,10 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasySave.Services.Logger;
 
 namespace EasySave.Models
 {
@@ -12,85 +13,114 @@ namespace EasySave.Models
     public class ModelConfig
     {
         private readonly string configPath;
-        private readonly ILogger logger;
+        private readonly JsonSerializerOptions serializerOptions;
 
-                /// <summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
         /// </summary>
         public ModelConfig()
         {
-            this.configPath = "config/config.json";
-            this.logger = new FileLogger();
+            this.configPath = "json/config.json";
+            this.serializerOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNameCaseInsensitive = true,
+            };
+            this.IsNewConfig = false;
+            this.EnsureConfigDirectoryExists(); // Ensures directory exists, not the file itself
         }
 
-        /// <summary>Gets or sets the source directory path.</summary>
-        [JsonPropertyName("Source")]
-        public string? Source { get; set; } = string.Empty;
-
-        /// <summary>Gets or sets the destination directory path.</summary>
-        [JsonPropertyName("Destination")]
-        public string? Destination { get; set; } = string.Empty;
-
-        /// <summary>Gets or sets the application language.</summary>
-        [JsonPropertyName("Language")]
-        public string? Language { get; set; } = "En";
+        /// <summary>
+        /// Gets a value indicating whether the configuration was newly created during the last Load operation 
+        /// because the config file was not found or was invalid.
+        /// </summary>
+        public bool IsNewConfig { get; private set; }
 
         /// <summary>Loads the configuration from the config file.</summary>
-        /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
-        public bool Load()
+        /// <returns>The loaded configuration object. Returns a new default Config if file not found or error occurs, and sets IsNewConfig accordingly.</returns>
+        public Config Load()
         {
+            this.IsNewConfig = false; // Assume existing config first
             try
             {
                 if (!File.Exists(this.configPath))
                 {
-                    this.logger.Log("Config file not found", "warning");
-                    return false;
+                    Console.WriteLine($"Config file not found at {this.configPath}. Will present config view for initial setup.");
+                    this.IsNewConfig = true;
+                    return new Config(); // Return a new default, unsaved config
                 }
 
                 string jsonString = File.ReadAllText(this.configPath);
-                var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-                this.logger.Log($"Config file found: {this.configPath}", "info");
-
-                if (config != null)
+                Config? loadedConfig = JsonSerializer.Deserialize<Config>(jsonString, this.serializerOptions);
+                
+                if (loadedConfig != null)
                 {
-                    this.Source = config.GetValueOrDefault("Source");
-                    this.Destination = config.GetValueOrDefault("Destination");
-                    this.Language = config.GetValueOrDefault("Language");
-                    this.logger.Log("Configuration loaded successfully", "info");
-                    return true;
+                    Console.WriteLine($"Configuration loaded successfully from {this.configPath}.");
+                    
+                    // Log details if needed, already done in previous version
+                    return loadedConfig;
                 }
 
-                this.logger.Log("Failed to deserialize config file", "error");
-                return false;
+                Console.WriteLine($"Warning: Failed to deserialize config file at {this.configPath}, or file was empty. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
+            }
+            catch (JsonException jsonEx)
+            {
+                Console.WriteLine($"Error deserializing configuration from {this.configPath}: {jsonEx.Message}. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error loading configuration: {ex.Message}", "error");
-                return false;
+                Console.WriteLine($"Error loading configuration from {this.configPath}: {ex.Message}. Will present config view.");
+                this.IsNewConfig = true;
+                return new Config(); // Return a new default, unsaved config
             }
         }
 
-        /// <summary>Saves the configuration to the config file.</summary>
-        /// <param name="config">The configuration to save.</param>
-        /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
-        public bool SaveOrOverride(Dictionary<string, string> config)
+        /// <summary>Saves or overrides the configuration to the config file.</summary>
+        /// <param name="configToSave">The configuration to save.</param>
+        /// <returns>The saved configuration object.</returns>
+        public Config SaveOrOverride(Config configToSave)
         {
             try
             {
-                string jsonString = JsonSerializer.Serialize(config, new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                });
-
+                this.EnsureConfigDirectoryExists();
+                string jsonString = JsonSerializer.Serialize(configToSave, this.serializerOptions);
                 File.WriteAllText(this.configPath, jsonString);
-                this.logger.Log("Configuration saved successfully", "info");
-                return true;
+                Console.WriteLine($"Configuration saved successfully to {this.configPath}.");
+                return configToSave;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error saving configuration: {ex.Message}", "error");
-                return false;
+                Console.WriteLine($"Error saving configuration to {this.configPath}: {ex.Message}");
+                return configToSave;
             }
+        }
+
+        private void EnsureConfigDirectoryExists()
+        {
+            var directory = Path.GetDirectoryName(this.configPath);
+            if (directory != null && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+        }
+
+        /// <summary>
+        /// Represents the actual configuration settings.
+        /// </summary>
+        public class Config
+        {
+            /// <summary>Gets or sets the default source directory path for backups.</summary>
+            public string Source { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the default destination directory path for backups.</summary>
+            public string Destination { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the application language (e.g., "En", "Fr").</summary>
+            public string Language { get; set; } = "En";
         }
     }
 }

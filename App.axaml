@@ -1,0 +1,27 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:EasySave"
+             xmlns:views="using:EasySave.Views"
+             xmlns:vm="using:EasySave.ViewModels"
+             x:Class="EasySave.App">
+    <Application.DataTemplates>
+        <DataTemplate DataType="{x:Type vm:BackupViewModel}">
+            <views:BackupView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ConfigViewModel}">
+            <views:ConfigView />
+        </DataTemplate>
+        <!-- MainWindow is typically the root, so a DataTemplate for MainViewModel might not be strictly needed
+             if MainViewModel is never directly used as Content for a ContentControl.
+             However, it doesn't hurt to have it if that possibility exists.
+        <DataTemplate DataType="{x:Type vm:MainViewModel}">
+            <views:MainWindow />
+        </DataTemplate>
+        -->
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Application.Styles>
+</Application> 

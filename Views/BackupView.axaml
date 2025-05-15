@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:EasySave.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="EasySave.Views.BackupView"
+             x:DataType="vm:BackupViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Backup Operations" 
+                      FontSize="24"/>
+            <Button Content="Refresh Projects" 
+                    Command="{Binding RefreshAllCommand}"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*">
+            <!-- Project List Section -->
+            <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,10,0">
+                <TextBlock Grid.Row="0" Text="Available Projects" 
+                          FontSize="18"
+                          Margin="0,0,0,10"/>
+                <ListBox Grid.Row="1" 
+                         x:Name="ProjectsListBox"
+                         ItemsSource="{Binding AvailableProjects}"
+                         SelectionMode="Multiple"
+                         SelectionChanged="ProjectsListBox_SelectionChanged"
+                         VerticalAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
+                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <!-- Backup States Section -->
+            <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,0,10,0">
+                <TextBlock Grid.Row="0" Text="Available Backups" 
+                          FontSize="18"
+                          Margin="0,0,0,10"/>
+                <ListBox Grid.Row="1" 
+                         x:Name="BackupsListBox"
+                         ItemsSource="{Binding AvailableBackups}"
+                         VerticalAlignment="Stretch"
+                         SelectionMode="Single">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="gray" />
+                                <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"/>
+                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
+                                <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Grid>
+
+        <!-- Action Buttons and Progress Bar in a single Grid row for better alignment -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+            <ProgressBar Grid.Column="0"
+                         IsVisible="{Binding IsBackupInProgress}"
+                         Value="{Binding OverallProgress}"
+                         Maximum="100" 
+                         Height="20"
+                         VerticalAlignment="Center"
+                         Margin="0,0,10,0"/> 
+            <StackPanel Grid.Column="1" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Right" 
+                        Spacing="10">
+                <Button Content="Save Project" 
+                        Command="{Binding SaveSelectedProjectCommand}"
+                        IsEnabled="{Binding !IsBackupInProgress}"/>
+                <Button Content="Differential Backup"
+                        Command="{Binding DifferentialBackupCommand}"
+                        IsEnabled="{Binding !IsBackupInProgress}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl> 
