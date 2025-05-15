@@ -18,7 +18,7 @@ namespace EasySave.Models
     /// </summary>
     public class ModelBackup
     {
-        private const int MaxProjects = 5;
+        private const int MaxProjects = 999;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
         
@@ -238,7 +238,6 @@ namespace EasySave.Models
                     if (!string.IsNullOrEmpty(lastBackupDir))
                     {
                         await Task.Run(() => this.CopyModifiedFilesWithProgressAsync(sourceDirPath, versionDir, lastBackupDir, state, progressReporter, projectName, isDifferential, stopwatch));
-
                     }
                     else
                     {
@@ -601,7 +600,6 @@ namespace EasySave.Models
         /// Copies only modified files with progress tracking.
         /// </summary>
         private async Task CopyModifiedFilesWithProgressAsync(string sourceDir, string destDir, string lastBackupDir, BackupState state, IProgress<double>? progressReporter = null, string? projectName = null, bool isDifferential = false, Stopwatch? stopwatch = null)
-
         {
             try
             {
