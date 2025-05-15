@@ -27,6 +27,11 @@
                          SelectionMode="Multiple"
                          SelectionChanged="ProjectsListBox_SelectionChanged"
                          VerticalAlignment="Stretch">
+                         <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
@@ -48,6 +53,11 @@
                          ItemsSource="{Binding AvailableBackups}"
                          VerticalAlignment="Stretch"
                          SelectionMode="Single">
+                         <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
