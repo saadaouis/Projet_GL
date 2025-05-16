@@ -25,7 +25,7 @@ namespace EasySave.Services.Translation
         /// Initializes a new instance of the <see cref="TranslationService"/> class.
         /// </summary>
         /// <param name="translationsPath">Path to the translations file.</param>
-        public TranslationService(string translationsPath = "resources/translations.json")
+        public TranslationService(string translationsPath = "Resources/translations.json")
         {
             this.translationsPath = translationsPath;
             this.currentLanguage = "en"; // Default language
