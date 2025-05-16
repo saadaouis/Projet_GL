@@ -67,13 +67,13 @@ This part concerns the software architecture & design choices for this project. 
 ## Use case diagram
 The Use Case Diagram represent the several interactions the user have with the application. It shows all of the options the user can choose from.
 
-![use case diagram](ressources/usecase_diagram.png)
+![use case diagram](Ressources/usecase_diagram.png)
 
 ## Activity diagram
 The Activity Diagram outlines the flow of actions within Easysave, from initialization to performing backup tasks. It provides a clear view of how user actions translate into system processes, showing decision points, process flows, and data interactions between the core components.
 
 
-![activity diagram](ressources/activity_diagram.png)
+![activity diagram](Ressources/activity_diagram.png)
 
 ## Class diagram
 The Class Diagram illustrates the main components of the Easysave application and their interactions:
@@ -91,7 +91,7 @@ The Class Diagram illustrates the main components of the Easysave application an
 - BackupLog: Manages log entries for backup operations, including timestamp, file size, and transfer time.
 
 - Logger: Records all actions and events, ensuring detailed traceability.
-![class diagram](ressources/class_diagram.png)
+![class diagram](Ressources/class_diagram.png)
 
 ## Sequence diagram
 This sequence diagram illustrates the complete data flow and interactions between the main classes of EasySave during a typical user session. It captures the user’s interactions with the system, how requests are processed, and how the system components (Model, View, Controller, Logger, and System) communicate to perform tasks like initialization, backup management, and configuration.
