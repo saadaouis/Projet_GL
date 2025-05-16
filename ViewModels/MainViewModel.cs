@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services.Translation;
+using EasySave.Logging;
+
 
 namespace EasySave.ViewModels
 {

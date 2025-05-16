@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using EasySave.Models;
+using EasySave.Logging;
 using EasySave.Services.Translation;
 
 namespace EasySave.ViewModels

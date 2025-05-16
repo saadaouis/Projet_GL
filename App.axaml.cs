@@ -11,10 +11,12 @@ using EasySave.Models;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
+using EasySave.Logging; //  Ajouté pour utiliser Logger
+
 
 namespace EasySave
 {
-    /// <summary>@
+    /// <summary>
     /// The main application class.
     /// </summary>
     public partial class App : Application
@@ -43,6 +45,10 @@ namespace EasySave
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
                 await mainViewModel.InitializeAsync();
 
+                //  Exemple d'utilisation du logger
+                var logger = serviceProvider.GetRequiredService<Logger>();
+                logger.Log("Application démarrée avec succès.");
+
                 // Set the MainWindow
                 desktop.MainWindow = new MainWindow
                 {
@@ -56,14 +62,15 @@ namespace EasySave
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Register services (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Register services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<ModelConfig>();
+            services.AddSingleton<Logger>(); //  Ajout du Logger ici
 
-            // Register ViewModels (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Register ViewModels
             services.AddSingleton<BackupViewModel>();
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
         }
     }
-} 
+}

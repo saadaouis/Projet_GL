@@ -4,6 +4,8 @@
 
 using System;
 using System.Threading.Tasks;
+using EasySave.Logging;
+
 
 namespace EasySave.Models
 {

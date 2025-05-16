@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EasySave.Services.State;
+using EasySave.Logging;
+
 
 namespace EasySave.Models
 {

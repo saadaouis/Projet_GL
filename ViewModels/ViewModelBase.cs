@@ -4,6 +4,8 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using EasySave.Logging;
+
 
 namespace EasySave.ViewModels
 {
