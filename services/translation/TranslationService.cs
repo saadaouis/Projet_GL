@@ -16,7 +16,7 @@ namespace EasySave.Services.Translation
     /// </summary>
     public class TranslationService
     {
-        private static readonly string[] AvailableLanguages = ["En", "Fr"];
+        private static readonly string[] AvailableLanguages = ["En", "Fr", "Gw"];
         private readonly string translationsPath;
         private Dictionary<string, Dictionary<string, string>>? translations; // Can be null initially
         private string currentLanguage;
@@ -28,7 +28,7 @@ namespace EasySave.Services.Translation
         public TranslationService(string translationsPath = "Resources/translations.json")
         {
             this.translationsPath = translationsPath;
-            this.currentLanguage = "en"; // Default language
+            this.currentLanguage = "En"; // Default language with correct case
 
             // Translations are not loaded in constructor; to be loaded explicitly via LoadTranslationsAsync or SetLanguageAsync
         }
@@ -47,15 +47,18 @@ namespace EasySave.Services.Translation
         /// <summary>
         /// Sets the current language and loads the corresponding translations.
         /// </summary>
-        /// <param name="newLanguage">The new language code (e.g., "en", "fr").</param>
+        /// <param name="newLanguage">The new language code (e.g., "En", "Fr").</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SetLanguageAsync(string newLanguage)
         {
             if (string.IsNullOrEmpty(newLanguage)) 
             {
                 Console.WriteLine("Warning: Attempted to set an empty or null language. Using default.");
-                newLanguage = "en"; // Fallback to a default
+                newLanguage = "En"; // Fallback to a default with correct case
             }
+
+            // Capitalize first letter to match the JSON format
+            newLanguage = char.ToUpper(newLanguage[0]) + newLanguage.Substring(1).ToLower();
 
             if (this.currentLanguage != newLanguage || this.translations == null)
             {

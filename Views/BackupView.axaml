@@ -37,14 +37,7 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
-                                <TextBlock>
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0} {1:F2} MB">
-                                            <Binding Path="T[backup.project.size]" />
-                                            <Binding Path="Size" />
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
+                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -71,9 +64,9 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="gray" />
-                                <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"/>
-                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
-                                <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>
+                                <TextBlock Text="{Binding Path}"/>
+                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
+                                <TextBlock Text="{Binding LastBackup, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -94,10 +87,10 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
                         Spacing="10">
-                <Button Content="{Binding T[config.save]}" 
+                <Button Content="{Binding T[backup.save_project]}" 
                         Command="{Binding SaveSelectedProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
-                <Button Content="{Binding T[config.differential_backup]}"
+                <Button Content="{Binding T[backup.differential_backup]}"
                         Command="{Binding DifferentialBackupCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
             </StackPanel>
