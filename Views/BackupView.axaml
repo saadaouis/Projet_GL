@@ -9,16 +9,17 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
-            <TextBlock Text="Backup Operations" 
+            <TextBlock Text="{Binding T[backup.title]}" 
                       FontSize="24"/>
-            <Button Content="Refresh Projects" 
+            <Button Content="{Binding T[logs.refresh]}" 
                     Command="{Binding RefreshAllCommand}"/>
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*">
             <!-- Project List Section -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,10,0">
-                <TextBlock Grid.Row="0" Text="Available Projects" 
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding T[backup.source]}" 
                           FontSize="18"
                           Margin="0,0,0,10"/>
                 <ListBox Grid.Row="1" 
@@ -36,7 +37,7 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
-                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
+                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -45,7 +46,8 @@
 
             <!-- Backup States Section -->
             <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,0,10,0">
-                <TextBlock Grid.Row="0" Text="Available Backups" 
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding T[backup.destination]}" 
                           FontSize="18"
                           Margin="0,0,0,10"/>
                 <ListBox Grid.Row="1" 
@@ -62,9 +64,9 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="gray" />
-                                <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"/>
-                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
-                                <TextBlock Text="{Binding LastBackup, StringFormat='Last backup: {0:g}'}"/>
+                                <TextBlock Text="{Binding Path}"/>
+                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
+                                <TextBlock Text="{Binding LastBackup, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -85,10 +87,10 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
                         Spacing="10">
-                <Button Content="Save Project" 
+                <Button Content="{Binding T[backup.save_project]}" 
                         Command="{Binding SaveSelectedProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
-                <Button Content="Differential Backup"
+                <Button Content="{Binding T[backup.differential_backup]}"
                         Command="{Binding DifferentialBackupCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
             </StackPanel>

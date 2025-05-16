@@ -29,6 +29,7 @@ namespace EasySave.ViewModels
         /// <param name="modelConfig">The model configuration instance.</param>
         /// <param name="translationService">The translation service instance.</param>
         public ConfigViewModel(ModelConfig modelConfig, TranslationService translationService)
+            : base(translationService)
         {
             this.modelConfig = modelConfig;
             this.translationService = translationService;
@@ -36,7 +37,7 @@ namespace EasySave.ViewModels
             this.currentConfig = new ModelConfig.Config();
             this.originalConfig = new ModelConfig.Config();
 
-            this.AvailableLanguages = new List<string> { "En", "Fr" };
+            this.AvailableLanguages = new List<string> { "En", "Fr", "Gw" };
 
             this.SaveConfigCommand = new MainViewModel.AsyncRelayCommand(this.ExecuteSaveConfigAsync, this.CanExecuteSaveConfig);
             this.CancelCommand = new MainViewModel.RelayCommand(this.ExecuteCancel);

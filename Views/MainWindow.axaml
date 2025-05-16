@@ -11,12 +11,12 @@
 
     <Grid RowDefinitions="Auto,*" Background="black">
         <Menu Grid.Row="0">
-            <MenuItem Header="File">
-                <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}"/>
+            <MenuItem Header="{Binding T[menu.file]}">
+                <MenuItem Header="{Binding T[menu.file.save]}" Command="{Binding SaveProjectCommand}"/>
                 <Separator/>
-                <MenuItem Header="Modify Config" Command="{Binding ModifyConfigCommand}"/>
+                <MenuItem Header="{Binding T[menu.settings.config]}" Command="{Binding ModifyConfigCommand}"/>
                 <Separator/>
-                <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
+                <MenuItem Header="{Binding T[menu.file.exit]}" Command="{Binding ExitCommand}"/>
             </MenuItem>
         </Menu>
 

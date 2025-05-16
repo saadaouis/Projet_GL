@@ -4,6 +4,7 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using EasySave.Services.Translation;
 
 namespace EasySave.ViewModels
 {
@@ -12,6 +13,30 @@ namespace EasySave.ViewModels
     /// </summary>
     public abstract class ViewModelBase : INotifyPropertyChanged
     {
+        private readonly TranslationService translationService;
+        private readonly TranslationManager translationManager;
+
+        protected ViewModelBase(TranslationService translationService)
+        {
+            this.translationService = translationService;
+            this.translationManager = new TranslationManager(translationService);
+        }
+
+        /// <summary>
+        /// Gets the translation manager for XAML bindings.
+        /// </summary>
+        public TranslationManager T => this.translationManager;
+
+        /// <summary>
+        /// Gets the translated text for a given key.
+        /// </summary>
+        /// <param name="key">The translation key.</param>
+        /// <returns>The translated text.</returns>
+        protected string GetTranslation(string key)
+        {
+            return this.translationService.GetTranslation(key);
+        }
+
         /// <summary>
         /// Event raised when a property value changes.
         /// </summary>

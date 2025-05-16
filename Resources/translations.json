@@ -1,5 +1,5 @@
 {
-  "en": {
+  "En": {
     "app.title": "EasySave",
     "menu.file": "File",
     "menu.file.download": "Download Backup",
@@ -17,8 +17,12 @@
     "backup.type": "Type",
     "backup.status": "Status",
     "backup.progress": "Progress",
+    "backup.save_project": "Save Project",
+    "backup.differential_backup": "Differential Backup",
     "config.title": "Configuration",
     "config.language": "Language",
+    "config.destination_path": "Destination Path",
+    "config.source_path": "Source Path",
     "config.logpath": "Log File Path",
     "config.statuspath": "Status File Path",
     "config.autosave": "Auto-Save",
@@ -31,7 +35,7 @@
     "logs.refresh": "Refresh",
     "logs.clear": "Clear Logs"
   },
-  "fr": {
+  "Fr": {
     "app.title": "EasySave",
     "menu.file": "Fichier",
     "menu.file.download": "Télécharger la sauvegarde",
@@ -49,8 +53,12 @@
     "backup.type": "Type",
     "backup.status": "Statut",
     "backup.progress": "Progression",
+    "backup.save_project": "Enregistrer le projet",
+    "backup.differential_backup": "Sauvegarde différentielle",
     "config.title": "Configuration",
     "config.language": "Langue",
+    "config.destination_path": "Chemin du dossier de sauvegarde",
+    "config.source_path": "Chemin du dossier source",
     "config.logpath": "Chemin du fichier de log",
     "config.statuspath": "Chemin du fichier de statut",
     "config.autosave": "Auto-sauvegarde",
@@ -62,5 +70,45 @@
     "logs.message": "Message",
     "logs.refresh": "Actualiser",
     "logs.clear": "Effacer les logs"
+  },
+    "Gw": {
+      "app.title": "IzySave",
+      "menu.file": "Fishiye",
+      "menu.file.download": "Téwacha la sawgav",
+      "menu.file.save": "Sawge pwoyet",
+      "menu.file.exit": "Kwité",
+      "menu.settings": "Pawametwè",
+      "menu.settings.autosave": "Aktivé/Désaktivé awto-sawgav",
+      "menu.settings.config": "Modifié la konfig",
+      "menu.view": "Viw",
+      "menu.view.logs": "Montwé les lwogs",
+      "backup.title": "Opeyasyon de sawgav",
+      "backup.name": "Nom",
+      "backup.source": "Sows",
+      "backup.destination": "Dèstinasyon",
+      "backup.type": "Tipe",
+      "backup.status": "Statu",
+      "backup.progress": "Pwogwé",
+      "backup.save_project": "Sawge pwoyet",
+      "backup.differential_backup": "Sawgav bizawment",
+      "backup.project.path": "Chimin du pwoyet",
+      "backup.project.size": "Pwoi du pwoyet",
+      "backup.project.last_backup": "Sawgav dèniè",
+      "config.title": "Konfigyawasyon",
+      "config.language": "Langaj",
+      "config.destination_path": "Chimin du dèstinasyon",
+      "config.source_path": "Chimin du sows",
+      "config.logpath": "Chimin du lwog",
+      "config.statuspath": "Chimin du statu",
+      "config.autosave": "Awto-sawgav",
+      "config.save": "Sawgav",
+      "config.cancel": "Anulé",
+      "logs.title": "Lwogs de l'applikasyon",
+      "logs.timestamp": "Lèwi",
+      "logs.level": "Nivwo",
+      "logs.message": "Mésaj",
+      "logs.refresh": "Aktualizé",
+      "logs.clear": "Effacé lwogs"
   }
+  
 } 
