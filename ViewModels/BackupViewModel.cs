@@ -28,13 +28,12 @@ namespace EasySave.ViewModels
         private string sourcePath;
         private string destinationPath;
 
-                /// <summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="BackupViewModel"/> class.
         /// </summary>
-        /// <param name="logger">The logger.</param>
         /// <param name="translationService">The translation service.</param>
-        public BackupViewModel(
-            TranslationService translationService)
+        public BackupViewModel(TranslationService translationService)
+            : base(translationService)
         {
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
@@ -52,7 +51,6 @@ namespace EasySave.ViewModels
             this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await this.RefreshAll());
             this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync());
             this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync(true));
-/*          this.DownloadBackupCommand = new AsyncRelayCommand(async () => await this.DownloadSelectedProjectAsync()); */
         }
 
         /// <summary>
@@ -164,11 +162,6 @@ namespace EasySave.ViewModels
         {
             return await this.modelBackup.GetBackupStateAsync(projectName);
         }
-
-/*         /// <summary>
-        /// Gets the download backup command.
-        /// </summary>
-        public ICommand DownloadBackupCommand { get; } */
 
         /// <summary>
         /// Loads the projects asynchronously.

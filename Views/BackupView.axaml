@@ -9,16 +9,17 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
-            <TextBlock Text="Backup Operations" 
+            <TextBlock Text="{Binding T[backup.title]}" 
                       FontSize="24"/>
-            <Button Content="Refresh Projects" 
+            <Button Content="{Binding T[logs.refresh]}" 
                     Command="{Binding RefreshAllCommand}"/>
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*">
             <!-- Project List Section -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,10,0">
-                <TextBlock Grid.Row="0" Text="Available Projects" 
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding T[backup.source]}" 
                           FontSize="18"
                           Margin="0,0,0,10"/>
                 <ListBox Grid.Row="1" 
@@ -36,7 +37,14 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
-                                <TextBlock Text="{Binding Size, StringFormat='Size: {0:F2} MB'}"/>
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} {1:F2} MB">
+                                            <Binding Path="T[backup.project.size]" />
+                                            <Binding Path="Size" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -45,7 +53,8 @@
 
             <!-- Backup States Section -->
             <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,0,10,0">
-                <TextBlock Grid.Row="0" Text="Available Backups" 
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding T[backup.destination]}" 
                           FontSize="18"
                           Margin="0,0,0,10"/>
                 <ListBox Grid.Row="1" 
@@ -85,10 +94,10 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
                         Spacing="10">
-                <Button Content="Save Project" 
+                <Button Content="{Binding T[config.save]}" 
                         Command="{Binding SaveSelectedProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
-                <Button Content="Differential Backup"
+                <Button Content="{Binding T[config.differential_backup]}"
                         Command="{Binding DifferentialBackupCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
             </StackPanel>
