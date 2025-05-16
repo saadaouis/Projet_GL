@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 
 namespace EasySave.Logging
 {
@@ -9,7 +10,7 @@ namespace EasySave.Logging
 
         public Logger()
         {
-            logFilePath = Path.Combine(AppContext.BaseDirectory, "easysave.log");
+            logFilePath = Path.Combine(AppContext.BaseDirectory, "easysave_logs.json");
         }
 
         public void SetLogFilePath(string path)
@@ -17,16 +18,41 @@ namespace EasySave.Logging
             logFilePath = path;
         }
 
-        public void Log(string message)
+        public void LogJson(string name, string fileSource, string fileTarget, long fileSize, double fileTransferTime)
         {
+            var logEntry = new
+            {
+                Name = name,
+                FileSource = fileSource,
+                FileTarget = fileTarget,
+                FileSize = fileSize,
+                FileTransferTime = fileTransferTime,
+                Time = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+            };
+
             try
             {
-                var fullMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
-                File.AppendAllText(logFilePath, fullMessage + Environment.NewLine);
+                string json = JsonSerializer.Serialize(logEntry, new JsonSerializerOptions { WriteIndented = true });
+
+                // Append comma if needed to maintain a valid JSON array
+                if (!File.Exists(logFilePath))
+                {
+                    File.WriteAllText(logFilePath, "[\n" + json + "\n]");
+                }
+                else
+                {
+                    var content = File.ReadAllText(logFilePath).TrimEnd();
+                    if (content.EndsWith("]"))
+                    {
+                        content = content.Substring(0, content.Length - 1); // Remove closing ]
+                        content += ",\n" + json + "\n]";
+                        File.WriteAllText(logFilePath, content);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Erreur lors de l'écriture dans le fichier log : " + ex.Message);
+                Console.WriteLine("Erreur lors de l'écriture du log JSON : " + ex.Message);
             }
         }
     }

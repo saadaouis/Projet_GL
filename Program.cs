@@ -19,13 +19,28 @@ namespace EasySave
                 }
 
                 var logger = new Logger();
-                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave.log"));
-                logger.Log("Application EasySave démarrée.");
+                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave_logs.json"));
+
+                // Exemple d'entrée JSON : démarrage de l'application
+                logger.LogJson(
+                    name: "System",
+                    fileSource: "N/A",
+                    fileTarget: "N/A",
+                    fileSize: 0,
+                    fileTransferTime: 0
+                );
 
                 BuildAvaloniaApp()
                     .StartWithClassicDesktopLifetime(args);
 
-                logger.Log("Application EasySave terminée.");
+                // Exemple d'entrée JSON : fin de l'application
+                logger.LogJson(
+                    name: "System",
+                    fileSource: "N/A",
+                    fileTarget: "N/A",
+                    fileSize: 0,
+                    fileTransferTime: 0
+                );
             }
             catch (Exception ex)
             {
@@ -36,8 +51,18 @@ namespace EasySave
                 }
 
                 var logger = new Logger();
-                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave.log"));
-                logger.Log("Exception lors du démarrage : " + ex.Message);
+                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave_logs.json"));
+
+                // Log d'erreur en JSON
+                logger.LogJson(
+                    name: "Exception",
+                    fileSource: "Startup",
+                    fileTarget: "N/A",
+                    fileSize: 0,
+                    fileTransferTime: 0
+                );
+
+                Console.WriteLine("Erreur au lancement : " + ex.Message);
                 throw;
             }
         }
