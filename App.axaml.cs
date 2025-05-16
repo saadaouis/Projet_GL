@@ -1,7 +1,3 @@
-// <copyright file="App.axaml.cs" company="EasySave">
-// Copyright (c) EasySave. All rights reserved.
-// </copyright>
-
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,45 +7,35 @@ using EasySave.Models;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
-using EasySave.Logging; //  Ajouté pour utiliser Logger
-
+using EasySave.Logging;
 
 namespace EasySave
 {
-    /// <summary>
-    /// The main application class.
-    /// </summary>
     public partial class App : Application
     {
-        /// <summary>
-        /// Initializes the application.
-        /// </summary>
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
         }
 
-        /// <summary>
-        /// Called when the framework initialization is completed.
-        /// </summary>
         public override async void OnFrameworkInitializationCompleted()
         {
             if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // Create the service provider
+                // Configuration des services
                 var services = new ServiceCollection();
-                this.ConfigureServices(services);
+                ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
 
-                // Get the MainViewModel and initialize it
+                // Récupérer le ViewModel principal
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
                 await mainViewModel.InitializeAsync();
 
-                //  Exemple d'utilisation du logger
+                // Utilisation du Logger
                 var logger = serviceProvider.GetRequiredService<Logger>();
                 logger.Log("Application démarrée avec succès.");
 
-                // Set the MainWindow
+                // Définir la fenêtre principale
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = mainViewModel,
@@ -62,12 +48,12 @@ namespace EasySave
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Register services
+            // Services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<ModelConfig>();
-            services.AddSingleton<Logger>(); //  Ajout du Logger ici
+            services.AddSingleton<Logger>();
 
-            // Register ViewModels
+            // ViewModels
             services.AddSingleton<BackupViewModel>();
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();

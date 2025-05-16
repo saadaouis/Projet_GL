@@ -1,59 +1,54 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
 namespace EasySave.Logging
 {
+    public class LogEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public string Name { get; set; }
+        public string FileSource { get; set; }
+        public string FileTarget { get; set; }
+        public long FileSize { get; set; }
+        public long FileTransferTime { get; set; }
+        public string Status { get; set; }
+        public string Message { get; set; }
+    }
+
     public class Logger
     {
-        private string logFilePath;
+        private readonly string logFilePath = "easysave_log.json";
 
-        public Logger()
+        public void LogJson(string name, string fileSource, string fileTarget, long fileSize, long fileTransferTime, string status = "OK", string message = "")
         {
-            logFilePath = Path.Combine(AppContext.BaseDirectory, "easysave_logs.json");
-        }
+            List<LogEntry> logs = new List<LogEntry>();
 
-        public void SetLogFilePath(string path)
-        {
-            logFilePath = path;
-        }
-
-        public void LogJson(string name, string fileSource, string fileTarget, long fileSize, double fileTransferTime)
-        {
-            var logEntry = new
+            if (File.Exists(logFilePath))
             {
+                string existingJson = File.ReadAllText(logFilePath);
+                if (!string.IsNullOrWhiteSpace(existingJson))
+                {
+                    logs = JsonSerializer.Deserialize<List<LogEntry>>(existingJson) ?? new List<LogEntry>();
+                }
+            }
+
+            logs.Add(new LogEntry
+            {
+                Timestamp = DateTime.Now,
                 Name = name,
                 FileSource = fileSource,
                 FileTarget = fileTarget,
                 FileSize = fileSize,
                 FileTransferTime = fileTransferTime,
-                Time = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
-            };
+                Status = status,
+                Message = message
+            });
 
-            try
-            {
-                string json = JsonSerializer.Serialize(logEntry, new JsonSerializerOptions { WriteIndented = true });
-
-                // Append comma if needed to maintain a valid JSON array
-                if (!File.Exists(logFilePath))
-                {
-                    File.WriteAllText(logFilePath, "[\n" + json + "\n]");
-                }
-                else
-                {
-                    var content = File.ReadAllText(logFilePath).TrimEnd();
-                    if (content.EndsWith("]"))
-                    {
-                        content = content.Substring(0, content.Length - 1); // Remove closing ]
-                        content += ",\n" + json + "\n]";
-                        File.WriteAllText(logFilePath, content);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Erreur lors de l'écriture du log JSON : " + ex.Message);
-            }
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string newJson = JsonSerializer.Serialize(logs, options);
+            File.WriteAllText(logFilePath, newJson);
         }
     }
 }

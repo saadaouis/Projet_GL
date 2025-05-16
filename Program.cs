@@ -12,14 +12,7 @@ namespace EasySave
         {
             try
             {
-                string logDirectory = @"C:\Logs";
-                if (!Directory.Exists(logDirectory))
-                {
-                    Directory.CreateDirectory(logDirectory);
-                }
-
                 var logger = new Logger();
-                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave_logs.json"));
 
                 // Exemple d'entrée JSON : démarrage de l'application
                 logger.LogJson(
@@ -44,16 +37,8 @@ namespace EasySave
             }
             catch (Exception ex)
             {
-                string logDirectory = @"C:\Logs";
-                if (!Directory.Exists(logDirectory))
-                {
-                    Directory.CreateDirectory(logDirectory);
-                }
-
                 var logger = new Logger();
-                logger.SetLogFilePath(Path.Combine(logDirectory, "easysave_logs.json"));
 
-                // Log d'erreur en JSON
                 logger.LogJson(
                     name: "Exception",
                     fileSource: "Startup",
