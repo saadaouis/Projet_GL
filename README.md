@@ -94,7 +94,9 @@ The Class Diagram illustrates the main components of the Easysave application an
 ```mermaid
 ---
 config:
-  theme: dark
+  theme: neo-dark
+  look: neo
+  layout: elk
 ---
 classDiagram
 namespace Services {
