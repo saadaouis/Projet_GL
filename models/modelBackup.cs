@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EasySave.Services.State;
 
 namespace EasySave.Models
 {
@@ -16,9 +18,11 @@ namespace EasySave.Models
     /// </summary>
     public class ModelBackup
     {
-        private const int MaxProjects = 5;
+        private const int MaxProjects = 999;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
+        
+        private readonly BackupStateRecorder backupStateRecorder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
@@ -29,6 +33,7 @@ namespace EasySave.Models
         {
             this.SourcePath = sourcePath;
             this.DestinationPath = destinationPath;
+            this.backupStateRecorder = new BackupStateRecorder();
         }
 
         /// <summary>
@@ -38,6 +43,7 @@ namespace EasySave.Models
         {
             this.SourcePath = string.Empty;
             this.DestinationPath = string.Empty;
+            this.backupStateRecorder = new BackupStateRecorder();
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
@@ -156,6 +162,7 @@ namespace EasySave.Models
         /// <returns>True if the save was successful, false otherwise.</returns>
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
                 var state = await this.GetBackupStateAsync(projectName);
@@ -168,6 +175,17 @@ namespace EasySave.Models
                 state.TotalSize = 0;
                 await state.UpdateStateAsync(); // Initial state update
                 progressReporter?.Report(0); // Report initial 0% progress
+
+                // Record initial state
+                this.backupStateRecorder.RecordStateAsync(
+                    projectName,
+                    this.SourcePath,
+                    this.DestinationPath,
+                    isDifferential,
+                    0,
+                    0,
+                    0,
+                    0);
 
                 Console.WriteLine($"Starting {(isDifferential ? "differential" : "full")} backup for project: {projectName}");
 
@@ -219,12 +237,12 @@ namespace EasySave.Models
                     // Copy only modified files
                     if (!string.IsNullOrEmpty(lastBackupDir))
                     {
-                        await Task.Run(() => this.CopyModifiedFilesWithProgressAsync(sourceDirPath, versionDir, lastBackupDir, state, progressReporter));
+                        await Task.Run(() => this.CopyModifiedFilesWithProgressAsync(sourceDirPath, versionDir, lastBackupDir, state, progressReporter, projectName, isDifferential, stopwatch));
                     }
                     else
                     {
                         // If no backup exists, copy everything
-                        if (!await Task.Run(() => this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state, progressReporter)))
+                        if (!await Task.Run(() => this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state, progressReporter, projectName, isDifferential, stopwatch)))
                         {
                             progressReporter?.Report(0); // Report 0% on failure if needed
                             return false;
@@ -236,7 +254,7 @@ namespace EasySave.Models
                     // For manual backups, copy everything
                     var (major, minor) = GetNextVersionNumber(projectDir, isDifferential);
                     string versionDir = Path.Combine(saveDir, $"V{major}");
-                    if (!await this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state, progressReporter))
+                    if (!await this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state, progressReporter, projectName, isDifferential, stopwatch))
                     {
                         progressReporter?.Report(0); // Report 0% on failure if needed
                         return false;
@@ -247,6 +265,18 @@ namespace EasySave.Models
                 state.CurrentOperation = "Complete";
                 await state.UpdateStateAsync();
                 progressReporter?.Report(100); // Report final 100% progress
+
+                // Record final state
+                this.backupStateRecorder.RecordStateAsync(
+                    projectName,
+                    this.SourcePath,
+                    this.DestinationPath,
+                    isDifferential,
+                    state.TotalSize,
+                    state.TotalFiles - state.ProcessedFiles,
+                    (int)stopwatch.Elapsed.TotalSeconds,
+                    (float)state.SizeProgressPercentage);
+
                 Console.WriteLine($"{(isDifferential ? "Differential" : "Full")} backup completed successfully");
                 return true;
             }
@@ -258,6 +288,18 @@ namespace EasySave.Models
                 state.CurrentOperation = "Error";
                 await state.UpdateStateAsync();
                 progressReporter?.Report(0); // Report 0% on error
+
+                // Record error state
+                this.backupStateRecorder.RecordStateAsync(
+                    projectName,
+                    this.SourcePath,
+                    this.DestinationPath,
+                    isDifferential,
+                    0,
+                    0,
+                    0,
+                    0);
+
                 Console.WriteLine($"Error saving project: {ex.Message}");
                 return false;
             }
@@ -557,24 +599,20 @@ namespace EasySave.Models
         /// <summary>
         /// Copies only modified files with progress tracking.
         /// </summary>
-        private async Task CopyModifiedFilesWithProgressAsync(string sourceDir, string destDir, string lastBackupDir, BackupState state, IProgress<double>? progressReporter = null)
+        private async Task CopyModifiedFilesWithProgressAsync(string sourceDir, string destDir, string lastBackupDir, BackupState state, IProgress<double>? progressReporter = null, string? projectName = null, bool isDifferential = false, Stopwatch? stopwatch = null)
         {
             try
             {
                 Directory.CreateDirectory(destDir);
                 var sourceDirectoryInfo = new DirectoryInfo(sourceDir);
-
-                // 1. Get all source files
                 var allSourceFiles = await Task.Run(() => 
                     sourceDirectoryInfo.GetFiles("*.*", SearchOption.AllDirectories).ToList());
 
-                // 2. Filter for modified files
                 var modifiedFiles = new List<FileInfo>();
                 foreach (var sourceFile in allSourceFiles)
                 {
                     string relativePath = Path.GetRelativePath(sourceDir, sourceFile.FullName);
                     string lastBackupFilePath = Path.Combine(lastBackupDir, relativePath);
-
                     if (!File.Exists(lastBackupFilePath))
                     {
                         modifiedFiles.Add(sourceFile);
@@ -589,75 +627,67 @@ namespace EasySave.Models
                     }
                 }
 
-                // 3. & 4. Set totals based on modified files
                 state.TotalFiles = modifiedFiles.Count;
                 state.TotalSize = modifiedFiles.Sum(f => f.Length);
-
-                // 5. Initialize processed
                 state.ProcessedFiles = 0;
                 state.ProcessedSize = 0;
-                
-                // 6. Initial state update
                 await state.UpdateStateAsync();
-
-                // 7. Report initial progress
                 progressReporter?.Report(0); 
-
                 if (state.TotalFiles == 0)
                 {
-                    // This case should ideally be caught by HasModifiedFiles earlier, but as a safeguard:
-                    Console.WriteLine("CopyModifiedFilesWithProgressAsync: No modified files found to copy.");
                     progressReporter?.Report(100); // Report 100% as no work needed
                     return;
                 }
-
-                // 8. Iterate and copy modified files
+                
                 foreach (var sourceFile in modifiedFiles)
                 {
                     string relativePath = Path.GetRelativePath(sourceDir, sourceFile.FullName);
                     string destFile = Path.Combine(destDir, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!); // Ensure target directory exists
-                    
-                    await Task.Run(() => sourceFile.CopyTo(destFile, true)); // Copy and overwrite
-
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                    await Task.Run(() => sourceFile.CopyTo(destFile, true));
                     state.ProcessedFiles++;
                     state.ProcessedSize += sourceFile.Length;
-                    progressReporter?.Report(state.SizeProgressPercentage); // Report progress based on size
+                    progressReporter?.Report(state.SizeProgressPercentage);
                     await state.UpdateStateAsync();
+
+                    // Record state after each file
+                    if (projectName != null && stopwatch != null)
+                    {
+                        this.backupStateRecorder.RecordStateAsync(
+                            projectName,
+                            this.SourcePath,
+                            this.DestinationPath,
+                            isDifferential,
+                            state.TotalSize,
+                            state.TotalFiles - state.ProcessedFiles,
+                            (int)stopwatch.Elapsed.TotalSeconds,
+                            (float)state.SizeProgressPercentage);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in CopyModifiedFilesWithProgressAsync: {ex.Message}");
                 state.ErrorMessage = $"Error during differential copy: {ex.Message}";
-
-                // Report current progress before marking as error. If TotalSize is 0, report 0.
                 progressReporter?.Report(state.TotalSize > 0 ? state.SizeProgressPercentage : 0);
                 await state.UpdateStateAsync(); 
-
-                // Do not mark IsComplete here, let SaveProjectAsync handle final state on exception
                 throw; // Re-throw to be caught by SaveProjectAsync
             }
         }
 
-        private async Task<bool> CopyDirectoryRecursiveAsync(string sourceDir, string targetDir, BackupState state, IProgress<double>? progressReporter = null)
+        private async Task<bool> CopyDirectoryRecursiveAsync(string sourceDir, string targetDir, BackupState state, IProgress<double>? progressReporter = null, string? projectName = null, bool isDifferential = false, Stopwatch? stopwatch = null)
         {
             try
             {
                 Directory.CreateDirectory(targetDir);
                 var sourceDirectoryInfo = new DirectoryInfo(sourceDir);
-
-                // Pre-calculate total files and size
-                if (state.TotalFiles == 0 && state.TotalSize == 0) // Calculate only once if called recursively for the first time
+                if (state.TotalFiles == 0 && state.TotalSize == 0)
                 {
                     var allFilesForSizeCalc = sourceDirectoryInfo.GetFiles("*.*", SearchOption.AllDirectories);
                     state.TotalFiles = allFilesForSizeCalc.Length;
                     state.TotalSize = allFilesForSizeCalc.Sum(f => f.Length);
                     state.ProcessedFiles = 0;
                     state.ProcessedSize = 0;
-
-                    // Initial report of 0% for this specific operation if it's the top-level call
-                    // For recursive calls, this might report 0 multiple times, but overall progress handles aggregation.
                     progressReporter?.Report(0); 
                     await state.UpdateStateAsync();
                 }
@@ -665,24 +695,34 @@ namespace EasySave.Models
                 foreach (var fileInfo in sourceDirectoryInfo.GetFiles())
                 {
                     string targetFilePath = Path.Combine(targetDir, fileInfo.Name);
-                    await Task.Run(() => fileInfo.CopyTo(targetFilePath, true)); // true to overwrite
-                    
+                    await Task.Run(() => fileInfo.CopyTo(targetFilePath, true));
                     state.ProcessedFiles++;
                     state.ProcessedSize += fileInfo.Length;
                     progressReporter?.Report(state.SizeProgressPercentage);
                     await state.UpdateStateAsync();
+
+                    // Record state after each file
+                    if (projectName != null && stopwatch != null)
+                    {
+                        this.backupStateRecorder.RecordStateAsync(
+                            projectName,
+                            this.SourcePath,
+                            this.DestinationPath,
+                            isDifferential,
+                            state.TotalSize,
+                            state.TotalFiles - state.ProcessedFiles,
+                            (int)stopwatch.Elapsed.TotalSeconds,
+                            (float)state.SizeProgressPercentage);
+                    }
                 }
 
                 foreach (var subDir in sourceDirectoryInfo.GetDirectories())
                 {
-                    string dirName = Path.GetFileName(subDir.FullName); // Use FullName for consistency
+                    string dirName = Path.GetFileName(subDir.FullName);
                     string destSubDir = Path.Combine(targetDir, dirName);
-
-                    // For recursive calls, we don't reset TotalFiles/TotalSize here.
-                    // The progress reported will be for its segment of files.
-                    if (!await this.CopyDirectoryRecursiveAsync(subDir.FullName, destSubDir, state, progressReporter))
+                    if (!await this.CopyDirectoryRecursiveAsync(subDir.FullName, destSubDir, state, progressReporter, projectName, isDifferential, stopwatch))
                     {
-                        return false; // Propagate failure
+                        return false;
                     }
                 }
                 
@@ -692,8 +732,8 @@ namespace EasySave.Models
             {
                 Console.WriteLine($"Error copying directory: {ex.Message}");
                 state.ErrorMessage = $"Error copying: {ex.Message}";
-                state.IsComplete = true; // Mark as complete on error for this part
-                progressReporter?.Report(state.SizeProgressPercentage); // Report current progress on error
+                state.IsComplete = true;
+                progressReporter?.Report(state.SizeProgressPercentage);
                 await state.UpdateStateAsync();
                 return false;
             }

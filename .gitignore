@@ -1,7 +1,8 @@
 # .NET Core build folders
 bin/
 obj/
-config/config.json
+json/config.json
+json/state.json
 log.json
 
 # Visual Studio files

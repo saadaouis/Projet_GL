@@ -19,7 +19,6 @@ namespace EasySave.ViewModels
         private readonly ConfigViewModel configViewModel;
         private readonly TranslationService translationService;
         private readonly ModelConfig modelConfig;
-        private bool isAutoSaveEnabled;
         private bool isInitialized;
         private ViewModelBase currentView;
 
@@ -55,15 +54,6 @@ namespace EasySave.ViewModels
             this.ExitCommand = new RelayCommand(() => Environment.Exit(0));
 
             // Initial view is set in InitializeAsync after config is loaded
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether auto-save is enabled.
-        /// </summary>
-        public bool IsAutoSaveEnabled
-        {
-            get => this.isAutoSaveEnabled;
-            set => this.SetProperty(ref this.isAutoSaveEnabled, value);
         }
 
         /// <summary>

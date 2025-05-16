@@ -91,22 +91,169 @@ The Class Diagram illustrates the main components of the Easysave application an
 - BackupLog: Manages log entries for backup operations, including timestamp, file size, and transfer time.
 
 - Logger: Records all actions and events, ensuring detailed traceability.
-![class diagram](Resources/class_diagram.png)
+```mermaid
+---
+config:
+  theme: dark
+---
+classDiagram
+namespace Services {
+  class Translation{
+    +string currentLanguage
+    +string GetTranslation(string key)
+    +void LoadTranslation()
+    +event LanguageChanged
+  }
+  class Encryption{
+    -string encryptionKey
+    +string EncryptFile()
+    +string DecryptFile()
+  }
+  class Logger{
+    +void Initialize()
+    +void Log(string message)
+    +void LogError(string message, Exception ex)
+  }
+  class StateRecorder{
+    +void WriteState(Dictionary~string, object~ info)
+    +Dictionary~string, object~ ReadState()
+  }
+}
+namespace Models {
+  class ModelBackup{
+    -int maxProjects
+    -Dictionary~string, BackupTask~ autoSaveTasks
+    -Dictionary~string, BackupState~ backupStates
+    +string SourcePath
+    +string DestinationPath
+    +List~string~ FetchProjectsAsync(string directory)
+    +BackupState GetBackupStateAsync(string projectName)
+    +bool SaveProjectAsync(string projectName, bool isDifferential, IProgress progressReporter)
+    +event BackupStateChanged
+  }
+  class BackupState {
+    +string ProjectName
+    +string CurrentOperation
+    +int TotalFiles
+    +int ProcessedFiles
+    +long TotalSize
+    +long ProcessedSize
+    +double ProgressPercentage
+    +double SizeProgressPercentage
+    +bool IsComplete
+    +string ErrorMessage
+    +event EventHandler StateChanged
+    +Task UpdateStateAsync()
+  }
+  class ModelConfig{
+    -string configPath
+    +bool isNewConfig
+    +Config Load()
+    +Config SaveOrOverride(Config configToSave)
+    +event ConfigChanged
+  }
+  class Config{
+    +string Source
+    +string Destination
+    +string Language
+  }
+}
+namespace ViewModels {
+  class INotifyPropertyChanged {
+    +event PropertyChanged
+  }
+  class BaseViewModel{
+    #virtual void OnPropertyChanged(string propertyName)
+    +event PropertyChanged
+  }
+  class MainViewModel{
+    -BackupViewModel backupViewModel
+    -ConfigViewModel configViewModel
+    -Translation translationService
+    -ModelConfig modelConfig
+    -ViewModelBase currentView
+    +ICommand NavigateCommand
+    +ICommand RefreshProjectsCommand
+    +ICommand ChangePathsCommand
+    +void InitializeAsync()
+    -void NavigateTo(string view)
+    -void RefreshProjects()
+    -void ChangePaths(string source, string destination)
+  }
+  class ConfigViewModel{
+    -ModelConfig modelConfig
+    -Translation translationService
+    -MainViewModel mainViewModel
+    -Config currentConfig
+    -Config originalConfig
+    +ICommand SaveConfigCommand
+    +ICommand CancelCommand
+    -void ExecuteSaveConfig()
+    -void CloneConfig()
+  }
+  class BackupViewModel{
+    -ModelBackup modelBackup
+    -Translation translationService
+    -List~string~ availableProjects
+    -List~string~ availableBackups
+    -List~string~ selectedProjects
+    +string SourcePath
+    +string DestinationPath
+    +ICommand LoadProjectsCommand
+    +ICommand SaveProjectsCommand
+    +ICommand RefreshProjectsCommand
+    +ICommand SelectProjectCommand
+    +void LoadProjectsAsync(string directory)
+    +void UpdateSelectedProjects(List~string~ selectedItems)
+    -void SaveSelectedProjects(bool isDifferential)
+    -void RefreshAllProjects()
+  }
+}
+namespace Views{
+  class ConfigView{
+    +void Initialize()
+    -void LanguageSelectionChanged()
+  }
+  class BackupView{
+    +void Initialize()
+    -void SelectionChanged()
+    -void OnLoad()
+  }
+  class MainView{
+    +void Initialize()
+  }
+}
+    ModelBackup  *--  BackupState : tracks
+    ModelBackup *-- StateRecorder : uses
+    ModelBackup *-- Encryption : uses
+    ModelConfig *-- Config : contains
+    BaseViewModel ..|> INotifyPropertyChanged : implements
+    BaseViewModel <|-- MainViewModel : extends
+    BaseViewModel <|-- ConfigViewModel : extends
+    BaseViewModel <|-- BackupViewModel : extends
+    MainViewModel *-- ConfigViewModel : contains
+    ConfigViewModel ..> MainViewModel : references
+    MainViewModel *-- BackupViewModel : contains
+    ConfigViewModel *-- ModelConfig : uses
+    BackupViewModel *-- ModelBackup : uses
+    MainViewModel *-- Translation : initializes
+    ConfigViewModel <.. Translation : uses
+    BackupViewModel <.. Translation : uses
+    MainViewModel *-- Logger : initializes
+    ConfigView ..> ConfigViewModel : DataContext
+    BackupView ..> BackupViewModel : DataContext
+    MainView --* MainViewModel : DataContext
+  MainView o-- ConfigView : displays
+  MainView o-- BackupView : displays
+```
 
 ## Sequence diagram
 This sequence diagram illustrates the complete data flow and interactions between the main classes of EasySave during a typical user session. It captures the user’s interactions with the system, how requests are processed, and how the system components (Model, View, Controller, Logger, and System) communicate to perform tasks like initialization, backup management, and configuration.
 ```mermaid
-  %%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#f4f4f4',
-    'primaryTextColor': '#000000',
-    'primaryBorderColor': '#000000',
-    'lineColor': '#000000',
-    'secondaryColor': '#f0f0f0',
-    'tertiaryColor': '#ffffff'
-  }
-}}%%
+---
+config:
+  theme: dark
+---
 
 sequenceDiagram
     actor U as User
