@@ -4,50 +4,53 @@
 
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using EasySave.Models;
+using Microsoft.Extensions.DependencyInjection;
 using EasySave.ViewModels;
 using EasySave.Views;
-using Microsoft.Extensions.DependencyInjection;
+using EasySave.Logging; // Pour Logger
 
 namespace EasySave
 {
-    /// <summary>@
-    /// The main application class.
+    /// <summary>
+    /// Classe principale de l'application.
     /// </summary>
     public partial class App : Application
     {
-        /// <summary>
-        /// Initializes the application.
-        /// </summary>
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
         }
 
-        /// <summary>
-        /// Called when the framework initialization is completed.
-        /// </summary>
         public override async void OnFrameworkInitializationCompleted()
         {
-            if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // Create the service provider
+                // Configuration du container d'injection de dépendances
                 var services = new ServiceCollection();
-                this.ConfigureServices(services);
+                ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
 
-                // Get the MainViewModel and initialize it
+                // Récupération et initialisation du MainViewModel
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
                 await mainViewModel.InitializeAsync();
 
-                // Set the MainWindow
+                // Exemple d'utilisation du Logger
+                var logger = serviceProvider.GetRequiredService<Logger>();
+                logger.Log("Application démarrée avec succès.");
+                // Exemple de log JSON, tu peux adapter les valeurs selon ton contexte
+
+                logger.LogJson("BackupProjet", @"C:\Users\MSi\OneDrive - ESPRIT\Images\Captures d’écran", @"C:\Users\MSi\OneDrive - ESPRIT\Images", 2038, 1.25666);
+               
+                logger.LogXml("BackupProjet", @"C:\Users\MSi\OneDrive - ESPRIT\Images\Captures d’écran", @"C:\Users\MSi\OneDrive - ESPRIT\Images", 2038, 1.25666);
+
+                // Configuration et affichage de la fenêtre principale
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = mainViewModel,
+                    DataContext = mainViewModel
                 };
+
                 desktop.MainWindow.Show();
             }
 
@@ -56,14 +59,15 @@ namespace EasySave
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Register services (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
-            services.AddSingleton<ModelConfig>();
+            services.AddSingleton<EasySave.Models.ModelConfig>();
+            services.AddSingleton<Logger>(); // Enregistrement du Logger
 
-            // Register ViewModels (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
         }
     }
-} 
+}
