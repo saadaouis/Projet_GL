@@ -1,169 +1,70 @@
-using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using System.Reflection;
+// <copyright file="CryptosoftService.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using System.Threading.Tasks;
+using CryptoSoftLib;
 
-namespace EasySave.Services
+namespace CryptoSoftService
 {
-    public static class CryptosoftService
+    /// <summary>
+    /// Service for encrypting and decrypting files using CryptoSoftLib.
+    /// </summary>
+    public class CryptosoftService
     {
-        const string CryptoSoftPath = "CryptoSoft.dll";
-        private const string Name = "CryptoSoft.Program";
+        private readonly CryptoService cryptoService;
 
-        private static void ValidateInputPath(string inputPath)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CryptosoftService"/> class.
+        /// </summary>
+        public CryptosoftService()
         {
-            if (string.IsNullOrWhiteSpace(inputPath))
-            {
-                throw new ArgumentException("Input path cannot be null or empty", nameof(inputPath));
-            }
+            this.cryptoService = new CryptoService();
+        }
 
-            if (!File.Exists(inputPath) && !Directory.Exists(inputPath))
+        /// <summary>
+        /// Encrypts a file.
+        /// </summary>
+        /// <param name="path">The path to the file to encrypt.</param>
+        /// <returns>The encrypted file path.</returns>
+        public async Task<string> Encrypt(string path)
+        {
+            int result = await this.cryptoService.EncryptFileAsync(path);
+            switch (result)
             {
-                throw new FileNotFoundException($"The specified path does not exist: {inputPath}");
+                case 0:
+                    return "File encrypted successfully";
+                case -1:
+                    return "Invalid Argument Count";
+                case -2:
+                    return "Invalid Operation";
+                case -3:
+                    return "File not found";
+                default:
+                    return "File encryption failed";
             }
         }
 
-        private static void ValidateCryptoSoftDll()
+        /// <summary>
+        /// Decrypts a file.
+        /// </summary>
+        /// <param name="path">The path to the file to decrypt.</param>
+        /// <returns>The decrypted file path.</returns>
+        public async Task<string> Decrypt(string path)
         {
-            if (!File.Exists(CryptoSoftPath))
+            int result = await this.cryptoService.DecryptFileAsync(path);
+            switch (result)
             {
-                throw new FileNotFoundException($"CryptoSoft.dll not found at: {Path.GetFullPath(CryptoSoftPath)}");
-            }
-        }
-
-        public static async Task<int> Encrypt(string inputPath)
-        {
-            try
-            {
-                // Validate inputs
-                ValidateInputPath(inputPath);
-                ValidateCryptoSoftDll();
-
-                // Load the assembly
-                Assembly assembly;
-                try
-                {
-                    assembly = Assembly.LoadFrom(CryptoSoftPath);
-                }
-                catch (BadImageFormatException)
-                {
-                    throw new InvalidOperationException("CryptoSoft.dll is not a valid .NET assembly");
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to load CryptoSoft.dll: {ex.Message}");
-                }
-                
-                // Create the arguments array
-                string[] args = new string[] { "encrypt", inputPath };
-                
-                // Get the Program type
-                Type? programType = assembly.GetType(Name);
-                if (programType == null)
-                {
-                    throw new InvalidOperationException($"Could not find type '{Name}' in CryptoSoft.dll");
-                }
-                
-                // Get the Main method
-                MethodInfo? mainMethod = programType.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
-                if (mainMethod == null)
-                {
-                    throw new InvalidOperationException("Could not find Main method in CryptoSoft.Program");
-                }
-                
-                // Invoke the Main method
-                var result = await (Task<int>)mainMethod.Invoke(null, new object[] { args })!;
-                
-                return result;
-            }
-            catch (ArgumentException ex)
-            {
-                Console.Error.WriteLine($"Invalid argument: {ex.Message}");
-                return -2;
-            }
-            catch (FileNotFoundException ex)
-            {
-                Console.Error.WriteLine($"File not found: {ex.Message}");
-                return -3;
-            }
-            catch (InvalidOperationException ex)
-            {
-                Console.Error.WriteLine($"Operation failed: {ex.Message}");
-                return -4;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Unexpected error while using CryptoSoft: {ex.Message}");
-                return -1;
-            }
-        }
-        
-        public static async Task<int> Decrypt(string inputPath)
-        {
-            try
-            {
-                // Validate inputs
-                ValidateInputPath(inputPath);
-                ValidateCryptoSoftDll();
-
-                // Load the assembly
-                Assembly assembly;
-                try
-                {
-                    assembly = Assembly.LoadFrom(CryptoSoftPath);
-                }
-                catch (BadImageFormatException)
-                {
-                    throw new InvalidOperationException("CryptoSoft.dll is not a valid .NET assembly");
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to load CryptoSoft.dll: {ex.Message}");
-                }
-                
-                // Create the arguments array
-                string[] args = new string[] { "decrypt", inputPath };
-                
-                // Get the Program type
-                Type? programType = assembly.GetType(Name);
-                if (programType == null)
-                {
-                    throw new InvalidOperationException($"Could not find type '{Name}' in CryptoSoft.dll");
-                }
-                
-                // Get the Main method
-                MethodInfo? mainMethod = programType.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
-                if (mainMethod == null)
-                {
-                    throw new InvalidOperationException("Could not find Main method in CryptoSoft.Program");
-                }
-                
-                // Invoke the Main method
-                var result = await (Task<int>)mainMethod.Invoke(null, new object[] { args })!;
-                
-                return result;
-            }
-            catch (ArgumentException ex)
-            {
-                Console.Error.WriteLine($"Invalid argument: {ex.Message}");
-                return -2;
-            }
-            catch (FileNotFoundException ex)
-            {
-                Console.Error.WriteLine($"File not found: {ex.Message}");
-                return -3;
-            }
-            catch (InvalidOperationException ex)
-            {
-                Console.Error.WriteLine($"Operation failed: {ex.Message}");
-                return -4;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Unexpected error while using CryptoSoft: {ex.Message}");
-                return -1;
+                case 0:
+                    return "File decrypted successfully";
+                case -1:
+                    return "Invalid Argument Count";
+                case -2:
+                    return "Invalid Operation";
+                case -3:
+                    return "File not found";
+                default:
+                    return "File decryption failed";
             }
         }
     }
