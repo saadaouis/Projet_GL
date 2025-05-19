@@ -2,23 +2,39 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using EasySave.Models;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
+using CryptoSoftService;
+using System;
 
 namespace EasySave
 {
+    /// <summary>
+    /// Extension methods for accessing services
+    /// </summary>
+    public static class ServiceExtensions
+    {
+        public static T GetService<T>() where T : class
+        {
+            return App.ServiceProvider.GetRequiredService<T>();
+        }
+    }
+
     /// <summary>@
     /// The main application class.
     /// </summary>
     public partial class App : Application
     {
+        /// <summary>
+        /// Global access to the service provider
+        /// </summary>
+        public static IServiceProvider ServiceProvider { get; private set; }
+
         /// <summary>
         /// Initializes the application.
         /// </summary>
@@ -38,6 +54,7 @@ namespace EasySave
                 var services = new ServiceCollection();
                 this.ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
+                ServiceProvider = serviceProvider;  // Store the service provider
 
                 // Get the MainViewModel and initialize it
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
@@ -64,6 +81,7 @@ namespace EasySave
             services.AddSingleton<BackupViewModel>();
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
+            services.AddSingleton<CryptosoftService>();
         }
     }
 } 
