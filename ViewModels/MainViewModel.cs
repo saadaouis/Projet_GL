@@ -22,6 +22,8 @@ namespace EasySave.ViewModels
         private bool isInitialized;
         private ViewModelBase currentView;
 
+        public BackupViewModel BackupViewModel => this.backupViewModel;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
@@ -112,7 +114,7 @@ namespace EasySave.ViewModels
                 Console.WriteLine($"Configured language: {languageToSet}");
                 await this.translationService.SetLanguageAsync(languageToSet);
                 Console.WriteLine("Testing translation: " + this.translationService.GetTranslation("menu.settings.autosave"));
-                
+
                 this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;
                 this.backupViewModel.DestinationPath = loadedConfig.Destination ?? string.Empty;
 
@@ -244,14 +246,14 @@ namespace EasySave.ViewModels
             /// </summary>
             /// <param name="parameter">The parameter to check.</param>
             /// <returns>True if the command can execute, false otherwise.</returns>
-            public bool CanExecute(object? parameter) => 
+            public bool CanExecute(object? parameter) =>
                 this.canExecute?.Invoke((T)parameter!) ?? true;
 
             /// <summary>
             /// Executes the command.
             /// </summary>
             /// <param name="parameter">The parameter to execute the command with.</param>
-            public void Execute(object? parameter) => 
+            public void Execute(object? parameter) =>
                 this.execute((T)parameter!);
 
             /// <summary>
