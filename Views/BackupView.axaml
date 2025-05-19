@@ -26,6 +26,7 @@
                          ItemsSource="{Binding AvailableProjects}"
                          SelectionMode="Multiple"
                          SelectionChanged="ProjectsListBox_SelectionChanged"
+                         Background="gray"
                          VerticalAlignment="Stretch">
                          <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
