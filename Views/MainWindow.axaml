@@ -8,8 +8,8 @@
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="EasySave">
-
-    <Grid RowDefinitions="Auto,*" Background="black">
+    
+    <Grid RowDefinitions="Auto,*" Background="gray">
         <Menu Grid.Row="0">
             <MenuItem Header="{Binding T[menu.file]}">
                 <MenuItem Header="{Binding T[menu.file.save]}" Command="{Binding SaveProjectCommand}"/>
