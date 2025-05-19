@@ -18,6 +18,8 @@ namespace EasySave
     /// </summary>
     public partial class App : Application
     {
+        public MainViewModel MainViewModel { get; private set; }
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -32,23 +34,27 @@ namespace EasySave
                 ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
 
-                // Récupération et initialisation du MainViewModel
-                var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
-                await mainViewModel.InitializeAsync();
+                // Récupération et initialisation du MainViewModel via DI
+                MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
+                await MainViewModel.InitializeAsync();
 
-                // Exemple d'utilisation du Logger
+                // Récupération du logger
                 var logger = serviceProvider.GetRequiredService<Logger>();
                 logger.Log("Application démarrée avec succès.");
-                // Exemple de log JSON, tu peux adapter les valeurs selon ton contexte
 
-                logger.LogJson("BackupProjet", @"C:\Users\MSi\OneDrive - ESPRIT\Images\Captures d’écran", @"C:\Users\MSi\OneDrive - ESPRIT\Images", 2038, 1.25666);
-               
-                logger.LogXml("BackupProjet", @"C:\Users\MSi\OneDrive - ESPRIT\Images\Captures d’écran", @"C:\Users\MSi\OneDrive - ESPRIT\Images", 2038, 1.25666);
+                // Récupération des chemins dynamiques depuis le backupViewModel
+                string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
+                string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
+            
+
+                // Logs avec chemins dynamiques
+                logger.LogJson("BackupProjet", source, destination,2028, 1.25666);
+                logger.LogXml("BackupProjet", source, destination, 2038, 1.25666);
 
                 // Configuration et affichage de la fenêtre principale
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = mainViewModel
+                    DataContext = MainViewModel
                 };
 
                 desktop.MainWindow.Show();

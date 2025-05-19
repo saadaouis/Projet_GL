@@ -22,6 +22,8 @@ namespace EasySave.ViewModels
         private bool isInitialized;
         private ViewModelBase currentView;
 
+        public BackupViewModel BackupViewModel => this.backupViewModel;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
