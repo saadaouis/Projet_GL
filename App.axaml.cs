@@ -5,12 +5,13 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using EasySave.Models;
+using Microsoft.Extensions.DependencyInjection;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
 using CryptoSoftService;
 using System;
+using EasySave.Logging; // Pour Logger
 
 namespace EasySave
 {
@@ -24,9 +25,8 @@ namespace EasySave
             return App.ServiceProvider.GetRequiredService<T>();
         }
     }
-
-    /// <summary>@
-    /// The main application class.
+  
+    /// Classe principale de l'application.
     /// </summary>
     public partial class App : Application
     {
@@ -34,37 +34,47 @@ namespace EasySave
         /// Global access to the service provider
         /// </summary>
         public static IServiceProvider ServiceProvider { get; private set; }
+        
+        public MainViewModel MainViewModel { get; private set; }
 
-        /// <summary>
-        /// Initializes the application.
-        /// </summary>
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
         }
 
-        /// <summary>
-        /// Called when the framework initialization is completed.
-        /// </summary>
         public override async void OnFrameworkInitializationCompleted()
         {
-            if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // Create the service provider
+                // Configuration du container d'injection de dépendances
                 var services = new ServiceCollection();
-                this.ConfigureServices(services);
+                ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
                 ServiceProvider = serviceProvider;  // Store the service provider
 
-                // Get the MainViewModel and initialize it
-                var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
-                await mainViewModel.InitializeAsync();
+                // Récupération et initialisation du MainViewModel via DI
+                MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
+                await MainViewModel.InitializeAsync();
 
-                // Set the MainWindow
+                // Récupération du logger
+                var logger = serviceProvider.GetRequiredService<Logger>();
+                logger.Log("Application démarrée avec succès.");
+
+                // Récupération des chemins dynamiques depuis le backupViewModel
+                string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
+                string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
+            
+
+                // Logs avec chemins dynamiques
+                logger.LogJson("BackupProjet", source, destination,2028, 1.25666);
+                logger.LogXml("BackupProjet", source, destination, 2038, 1.25666);
+
+                // Configuration et affichage de la fenêtre principale
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = mainViewModel,
+                    DataContext = MainViewModel
                 };
+
                 desktop.MainWindow.Show();
             }
 
@@ -73,15 +83,16 @@ namespace EasySave
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Register services (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
-            services.AddSingleton<ModelConfig>();
+            services.AddSingleton<EasySave.Models.ModelConfig>();
+            services.AddSingleton<Logger>(); // Enregistrement du Logger
 
-            // Register ViewModels (ensure these are consistent with Program.cs or remove from Program.cs)
+            // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<CryptosoftService>();
         }
     }
-} 
+}

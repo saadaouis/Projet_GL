@@ -52,11 +52,11 @@ namespace EasySave.Models
 
                 string jsonString = File.ReadAllText(this.configPath);
                 Config? loadedConfig = JsonSerializer.Deserialize<Config>(jsonString, this.serializerOptions);
-                
+
                 if (loadedConfig != null)
                 {
                     Console.WriteLine($"Configuration loaded successfully from {this.configPath}.");
-                    
+
                     // Log details if needed, already done in previous version
                     return loadedConfig;
                 }
