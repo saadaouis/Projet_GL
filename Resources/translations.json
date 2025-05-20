@@ -20,6 +20,7 @@
     "backup.save_project": "Save Project",
     "backup.differential_backup": "Differential Backup",
     "config.title": "Configuration",
+    "config.log_type": "Log Type - Warning: Requires restart",
     "config.language": "Language",
     "config.destination_path": "Destination Path",
     "config.source_path": "Source Path",
@@ -56,6 +57,7 @@
     "backup.save_project": "Enregistrer le projet",
     "backup.differential_backup": "Sauvegarde différentielle",
     "config.title": "Configuration",
+    "config.log_type": "Type de log - Attention: Nécessite de redémarrer l'application",
     "config.language": "Langue",
     "config.destination_path": "Chemin du dossier de sauvegarde",
     "config.source_path": "Chemin du dossier source",
@@ -71,7 +73,7 @@
     "logs.refresh": "Actualiser",
     "logs.clear": "Effacer les logs"
   },
-    "Gw": {
+  "Gw": {
       "app.title": "IzySave",
       "menu.file": "Fishiye",
       "menu.file.download": "Téwacha la sawgav",
@@ -95,6 +97,7 @@
       "backup.project.size": "Pwoi du pwoyet",
       "backup.project.last_backup": "Sawgav dèniè",
       "config.title": "Konfigyawasyon",
+      "config.log_type": "Wa Wabiit Logé - Oogah! Faut réboot la machina!",
       "config.language": "Langaj",
       "config.destination_path": "Chimin du dèstinasyon",
       "config.source_path": "Chimin du sows",
@@ -109,6 +112,5 @@
       "logs.message": "Mésaj",
       "logs.refresh": "Aktualizé",
       "logs.clear": "Effacé lwogs"
+    }  
   }
-  
-} 

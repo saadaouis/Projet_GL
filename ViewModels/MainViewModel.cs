@@ -8,6 +8,9 @@ using System.Windows.Input;
 using CryptoSoftService;
 using EasySave.Models;
 using EasySave.Services.Translation;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Generic;
+using EasySave.Services.Logging;
 
 namespace EasySave.ViewModels
 {
@@ -115,6 +118,9 @@ namespace EasySave.ViewModels
                 Console.WriteLine($"Configured language: {languageToSet}");
                 await this.translationService.SetLanguageAsync(languageToSet);
                 Console.WriteLine("Testing translation: " + this.translationService.GetTranslation("menu.settings.autosave"));
+
+                var logger = App.ServiceProvider.GetRequiredService<loggingService>();
+                logger.Log(new Dictionary<string, string> { { "message", "MainViewModel: Initialized" } });
 
                 this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;
                 this.backupViewModel.DestinationPath = loadedConfig.Destination ?? string.Empty;

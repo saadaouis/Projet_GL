@@ -11,8 +11,9 @@ using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
 using CryptoSoftService;
 using System;
-using EasySave.services; // Pour Logger
+using EasySave.Services.Logging; // Pour Logger
 using System.Collections.Generic;
+using EasySave.Models; // Pour ModelConfig
 namespace EasySave
 {
     /// <summary>
@@ -56,10 +57,6 @@ namespace EasySave
                 MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
                 await MainViewModel.InitializeAsync();
 
-                // Récupération du logger
-                var logger = serviceProvider.GetRequiredService<loggingService>();
-                logger.Log(new Dictionary<string, string> { { "message", "Application started" } });
-
                 // Récupération des chemins dynamiques depuis le backupViewModel
                 string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
                 string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
@@ -83,7 +80,11 @@ namespace EasySave
             // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<loggingService>(); // Enregistrement du Logger
+            services.AddSingleton<loggingService>(sp => 
+            {
+                var config = sp.GetRequiredService<ModelConfig>().Load();
+                return new loggingService(config.LogType);
+            }); // Enregistrement du Logger avec le type de log depuis la config
 
             // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
