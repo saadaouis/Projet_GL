@@ -121,6 +121,9 @@ namespace EasySave.Models
 
             /// <summary>Gets or sets the application language (e.g., "En", "Fr").</summary>
             public string Language { get; set; } = "En";
+
+            /// <summary>Gets or sets the log type (e.g., "json", "xml", "txt").</summary>
+            public string LogType { get; set; } = "json";
         }
     }
 }

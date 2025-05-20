@@ -38,7 +38,7 @@ namespace EasySave.ViewModels
             this.originalConfig = new ModelConfig.Config();
 
             this.AvailableLanguages = new List<string> { "En", "Fr", "Gw" };
-
+            this.AvailableLogTypes = new List<string> { "json", "xml", "txt" };
             this.SaveConfigCommand = new MainViewModel.AsyncRelayCommand(this.ExecuteSaveConfigAsync, this.CanExecuteSaveConfig);
             this.CancelCommand = new MainViewModel.RelayCommand(this.ExecuteCancel);
         }
@@ -63,6 +63,11 @@ namespace EasySave.ViewModels
         /// Gets the list of available languages for the UI.
         /// </summary>
         public List<string> AvailableLanguages { get; }
+
+        /// <summary>
+        /// Gets the list of available log types for the UI.
+        /// </summary>
+        public List<string> AvailableLogTypes { get; }
 
         /// <summary>
         /// Gets the command to save the current configuration.

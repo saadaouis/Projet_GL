@@ -1,41 +1,45 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:EasySave.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="EasySave.Views.ConfigView"
-             x:DataType="vm:ConfigViewModel">
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:vm="using:EasySave.ViewModels"
+mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+x:Class="EasySave.Views.ConfigView"
+x:DataType="vm:ConfigViewModel">
 
     <Grid RowDefinitions="Auto,*" Margin="20">
         <TextBlock Grid.Row="0" 
-                   Text="Configuration" 
-                   FontSize="24" 
-                   Margin="0,0,0,20"/>
+        Text="Configuration" 
+        FontSize="24" 
+        Margin="0,0,0,20"/>
 
         <StackPanel Grid.Row="1" Spacing="10">
             <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
                 <TextBlock Grid.Row="0" Grid.Column="0" 
-                           Text="{Binding T[config.language]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
+                Text="{Binding T[config.language]}" 
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"/>
                 <ComboBox Grid.Row="0" Grid.Column="1"
-                          ItemsSource="{Binding AvailableLanguages}"
-                          SelectedItem="{Binding CurrentConfig.Language}"/>
+                ItemsSource="{Binding AvailableLanguages}"
+                SelectedItem="{Binding CurrentConfig.Language}"/>
+
+                <ComboBox Grid.Row="0" Grid.Column="2"
+                ItemsSource="{Binding AvailableLogTypes}"
+                SelectedItem="{Binding CurrentConfig.LogType}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" 
-                           Text="{Binding T[config.destination_path]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
+                Text="{Binding T[config.destination_path]}" 
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1"
-                         Text="{Binding CurrentConfig.Destination}"/>
+                Text="{Binding CurrentConfig.Destination}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" 
-                           Text="{Binding T[config.source_path]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
+                Text="{Binding T[config.source_path]}" 
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"/>
                 <TextBox Grid.Row="2" Grid.Column="1"
-                         Text="{Binding CurrentConfig.Source}"/>
+                Text="{Binding CurrentConfig.Source}"/>
 
             </Grid>
 

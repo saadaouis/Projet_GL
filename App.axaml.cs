@@ -58,7 +58,7 @@ namespace EasySave
 
                 // Récupération du logger
                 var logger = serviceProvider.GetRequiredService<loggingService>();
-                logger.Log(new Dictionary<string, string> { { "message", "Application démarrée avec succès." } });
+                logger.Log(new Dictionary<string, string> { { "message", "Application started" } });
 
                 // Récupération des chemins dynamiques depuis le backupViewModel
                 string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
