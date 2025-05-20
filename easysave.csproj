@@ -38,6 +38,12 @@
   </Reference>
 </ItemGroup>
 
+<ItemGroup>
+  <Reference Include="EasyLogs">
+    <HintPath>lib/easylogs/EasyLogs.dll</HintPath>
+  </Reference>
+</ItemGroup>
+
   <ItemGroup>
     <AvaloniaResource Include="Assets\avalonia-logo.ico" />
   </ItemGroup>

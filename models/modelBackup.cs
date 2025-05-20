@@ -10,7 +10,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CryptoSoftService;
+using EasySave.Services.Logging;
 using EasySave.Services.State;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.Models
 {
@@ -25,6 +27,10 @@ namespace EasySave.Models
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
 
+        private float totalEncryptTime;
+
+        private readonly loggingService logger;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
         /// </summary>
@@ -36,6 +42,7 @@ namespace EasySave.Models
             this.DestinationPath = destinationPath;
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
+            this.logger = App.ServiceProvider.GetRequiredService<loggingService>();
         }
 
         /// <summary>
@@ -47,6 +54,7 @@ namespace EasySave.Models
             this.DestinationPath = string.Empty;
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
+            this.logger = App.ServiceProvider.GetRequiredService<loggingService>();
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
@@ -168,6 +176,19 @@ namespace EasySave.Models
             var stopwatch = Stopwatch.StartNew();
             try
             {
+                // Log the start of the backup
+                var startLog = new Dictionary<string, string>
+                {
+                    { "Name", projectName },
+                    { "FileSource", Path.Combine(this.SourcePath, projectName) },
+                    { "FileTarget", Path.Combine(this.DestinationPath, projectName) },
+                    { "FileSize", "0" },
+                    { "FileTransferTime", "0" },
+                    { "encryptTime", "0" },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                };
+                this.logger.Log(startLog);
+
                 var state = await this.GetBackupStateAsync(projectName);
                 state.CurrentOperation = isDifferential ? "Differential backup" : "Full backup";
                 state.IsComplete = false;
@@ -281,14 +302,18 @@ namespace EasySave.Models
                     }
 
                     Console.WriteLine($"Found {files.Length} files to encrypt");
+                    totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
                         if (File.Exists(file))
                         {
                             try
                             {
+                                var encryptTime = Stopwatch.StartNew();
                                 var encrypted = await this.cryptosoftService.Encrypt(file);
-                                Console.WriteLine($"Encrypted {file}: {encrypted}");
+                                encryptTime.Stop();
+                                totalEncryptTime += (float)encryptTime.Elapsed.TotalSeconds;
+                                Console.WriteLine($"Encrypted {file}: {encrypted} in {encryptTime.Elapsed.TotalSeconds:F3} seconds");
                             }
                             catch (Exception ex)
                             {
@@ -300,7 +325,7 @@ namespace EasySave.Models
                             Console.WriteLine($"File {file} does not exist");
                         }
                     }
-                    Console.WriteLine("Encryption complete");
+                    Console.WriteLine($"Encryption complete. Total encryption time: {totalEncryptTime:F3} seconds");
                 }
 
                 state.IsComplete = true;
@@ -318,6 +343,19 @@ namespace EasySave.Models
                     state.TotalFiles - state.ProcessedFiles,
                     (int)stopwatch.Elapsed.TotalSeconds,
                     (float)state.SizeProgressPercentage);
+
+                // Log the completion of the backup
+                var endLog = new Dictionary<string, string>
+                {
+                    { "Name", projectName },
+                    { "FileSource", Path.Combine(this.SourcePath, projectName) },
+                    { "FileTarget", Path.Combine(this.DestinationPath, projectName) },
+                    { "FileSize", state.TotalSize.ToString() },
+                    { "FileTransferTime", stopwatch.Elapsed.TotalSeconds.ToString("F3") },
+                    { "encryptTime", totalEncryptTime.ToString("F3") },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                };
+                this.logger.Log(endLog);
 
                 Console.WriteLine($"{(isDifferential ? "Differential" : "Full")} backup completed successfully");
                 return true;
@@ -341,6 +379,20 @@ namespace EasySave.Models
                     0,
                     0,
                     0);
+
+                // Log the error
+                var errorLog = new Dictionary<string, string>
+                {
+                    { "Name", projectName },
+                    { "FileSource", Path.Combine(this.SourcePath, projectName) },
+                    { "FileTarget", Path.Combine(this.DestinationPath, projectName) },
+                    { "FileSize", "0" },
+                    { "FileTransferTime", stopwatch.Elapsed.TotalSeconds.ToString("F3") },
+                    { "encryptTime", "0" },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") },
+                    { "error", ex.Message }
+                };
+                this.logger.Log(errorLog);
 
                 Console.WriteLine($"Error saving project: {ex.Message}");
                 return false;

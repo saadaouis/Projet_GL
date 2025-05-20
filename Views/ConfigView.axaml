@@ -3,51 +3,46 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:EasySave.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d"
+             d:DesignWidth="800" d:DesignHeight="450"
              x:Class="EasySave.Views.ConfigView"
              x:DataType="vm:ConfigViewModel">
 
-    <Grid RowDefinitions="Auto,*" Margin="20">
-        <TextBlock Grid.Row="0" 
-                   Text="Configuration" 
-                   FontSize="24" 
-                   Margin="0,0,0,20"/>
+  <Grid Margin="30" RowDefinitions="Auto,*">
+    <TextBlock Grid.Row="0" Text="Configuration" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,30"/>
 
-        <StackPanel Grid.Row="1" Spacing="10">
-            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                <TextBlock Grid.Row="0" Grid.Column="0" 
-                           Text="{Binding T[config.language]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
-                <ComboBox Grid.Row="0" Grid.Column="1"
-                          ItemsSource="{Binding AvailableLanguages}"
-                          SelectedItem="{Binding CurrentConfig.Language}"/>
+    <StackPanel Grid.Row="1" Spacing="25" HorizontalAlignment="Left" Width="400">
 
-                <TextBlock Grid.Row="1" Grid.Column="0" 
-                           Text="{Binding T[config.destination_path]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
-                <TextBox Grid.Row="1" Grid.Column="1"
-                         Text="{Binding CurrentConfig.Destination}"/>
+      <!-- Language -->
+      <StackPanel Orientation="Vertical" Spacing="5">
+        <TextBlock Text="{Binding T[config.language]}" FontWeight="Bold" FontSize="14"/>
+        <ComboBox ItemsSource="{Binding AvailableLanguages}" SelectedItem="{Binding CurrentConfig.Language}" Height="32" />
+      </StackPanel>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" 
-                           Text="{Binding T[config.source_path]}" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,10,0"/>
-                <TextBox Grid.Row="2" Grid.Column="1"
-                         Text="{Binding CurrentConfig.Source}"/>
+      <!-- Log Type -->
+      <StackPanel Orientation="Vertical" Spacing="5">
+        <TextBlock Text="{Binding T[config.log_type]}" FontWeight="Bold" FontSize="14"/>
+        <ComboBox ItemsSource="{Binding AvailableLogTypes}" SelectedItem="{Binding CurrentConfig.LogType}" Height="32"/>
+      </StackPanel>
 
-            </Grid>
+      <!-- Destination Path -->
+      <StackPanel Orientation="Vertical" Spacing="5">
+        <TextBlock Text="{Binding T[config.destination_path]}" FontWeight="Bold" FontSize="14"/>
+        <TextBox Text="{Binding CurrentConfig.Destination}" Height="32" Padding="6"/>
+      </StackPanel>
 
-            <StackPanel Orientation="Horizontal" 
-                        HorizontalAlignment="Right" 
-                        Spacing="10" 
-                        Margin="0,20,0,0">
-                <Button Content="{Binding T[config.save]}" 
-                        Command="{Binding SaveConfigCommand}"/>
-                <Button Content="{Binding T[config.cancel]}" 
-                        Command="{Binding CancelCommand}"/>
-            </StackPanel>
-        </StackPanel>
-    </Grid>
-</UserControl> 
+      <!-- Source Path -->
+      <StackPanel Orientation="Vertical" Spacing="5">
+        <TextBlock Text="{Binding T[config.source_path]}" FontWeight="Bold" FontSize="14"/>
+        <TextBox Text="{Binding CurrentConfig.Source}" Height="32" Padding="6"/>
+      </StackPanel>
+
+      <!-- Buttons -->
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15" Margin="0,40,0,0">
+        <Button Content="{Binding T[config.save]}" Command="{Binding SaveConfigCommand}" MinWidth="90" Height="36"/>
+        <Button Content="{Binding T[config.cancel]}" Command="{Binding CancelCommand}" MinWidth="90" Height="36"/>
+      </StackPanel>
+
+    </StackPanel>
+  </Grid>
+</UserControl>

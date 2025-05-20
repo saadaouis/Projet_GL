@@ -3,7 +3,7 @@ bin/
 obj/
 json/config.json
 json/state.json
-log.json
+logs/
 
 # Visual Studio files
 .vs/
