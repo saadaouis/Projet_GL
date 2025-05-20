@@ -7,7 +7,7 @@ namespace EasySave.Services.Logging
 {
     public class loggingService
     {
-        private const string LogFolder = "json/";
+        private const string LogFolder = "logs/";
         private const string LogName = "logs";
         private EasyLogs.LogType logType;
 
