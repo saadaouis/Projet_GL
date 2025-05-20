@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CryptoSoftService;
 using EasySave.Services.State;
 
 namespace EasySave.Models
@@ -21,7 +22,7 @@ namespace EasySave.Models
         private const int MaxProjects = 999;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
-        
+        private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
 
         /// <summary>
@@ -34,6 +35,7 @@ namespace EasySave.Models
             this.SourcePath = sourcePath;
             this.DestinationPath = destinationPath;
             this.backupStateRecorder = new BackupStateRecorder();
+            this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
         }
 
         /// <summary>
@@ -44,6 +46,7 @@ namespace EasySave.Models
             this.SourcePath = string.Empty;
             this.DestinationPath = string.Empty;
             this.backupStateRecorder = new BackupStateRecorder();
+            this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
@@ -259,6 +262,45 @@ namespace EasySave.Models
                         progressReporter?.Report(0); // Report 0% on failure if needed
                         return false;
                     }
+                    
+                    // Wait a bit to ensure all files are written
+                    await Task.Delay(1000);
+                    
+                    Console.WriteLine($"Verifying files in {versionDir}");
+                    if (!Directory.Exists(versionDir))
+                    {
+                        Console.WriteLine($"Directory {versionDir} does not exist");
+                        return false;
+                    }
+
+                    var files = Directory.GetFiles(versionDir, "*.*", SearchOption.AllDirectories);
+                    if (files.Length == 0)
+                    {
+                        Console.WriteLine("No files found to encrypt");
+                        return true;
+                    }
+
+                    Console.WriteLine($"Found {files.Length} files to encrypt");
+                    foreach (var file in files)
+                    {
+                        if (File.Exists(file))
+                        {
+                            try
+                            {
+                                var encrypted = await this.cryptosoftService.Encrypt(file);
+                                Console.WriteLine($"Encrypted {file}: {encrypted}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Failed to encrypt {file}: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"File {file} does not exist");
+                        }
+                    }
+                    Console.WriteLine("Encryption complete");
                 }
 
                 state.IsComplete = true;

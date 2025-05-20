@@ -5,6 +5,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using CryptoSoftService;
 using EasySave.Models;
 using EasySave.Services.Translation;
 
@@ -120,6 +121,8 @@ namespace EasySave.ViewModels
 
                 this.configViewModel.CurrentConfig = loadedConfig ?? new ModelConfig.Config();
                 Console.WriteLine($"MainViewModel: Initialized ConfigViewModel.CurrentConfig.Language: {this.configViewModel.CurrentConfig.Language}");
+                var cryptosoftService = new CryptosoftService();
+                await cryptosoftService.Encrypt("test.txt");
 
                 if (this.modelConfig.IsNewConfig)
                 {

@@ -116,3 +116,4 @@ appsettings.Local.json
 .DS_Store
 .AppleDouble
 .LSOverride
+json/config.json
