@@ -309,6 +309,9 @@ namespace EasySave.ViewModels
             await this.LoadProjectsAsync("destination");
         }
 
+
+
+
         /* private async Task DownloadSelectedProjectAsync()
         // {
         //     if (this.SelectedProject == null)
