@@ -48,6 +48,7 @@ namespace EasySave.Controllers
             this.isRunning = true;
             this.fileLogger.Log("Starting application", "info");
             View view = new View();
+            View.ClearConsole();
 
             if (this.modelConfig.Load())
             {
@@ -102,26 +103,17 @@ namespace EasySave.Controllers
                 {
                     case 1:
                         View.ClearConsole();
-                        this.DownloadBackup();
+                        this.SaveProject();
                         break;
                     case 2:
                         View.ClearConsole();
-                        this.SaveProject();
+                        this.ModifyConfig();
                         break;
                     case 3:
                         View.ClearConsole();
-                        this.ToggleAutoSave();
-                        break;
-                    case 4:
-                        View.ClearConsole();
-                        View.ShowMessage("Modify config", "info");
-                        this.ModifyConfig();
-                        break;
-                    case 5:
-                        View.ClearConsole();
                         this.ToggleConsoleLogging();
                         break;
-                    case 6:
+                    case 4:
                         View.ShowMessage("Exit", "info");
                         this.isRunning = false;
                         break;
@@ -199,47 +191,6 @@ namespace EasySave.Controllers
             }
         }
 
-        /// <summary>
-        /// Allows the user to download a backup version.
-        /// </summary>
-        private void DownloadBackup()
-        {
-            View.ShowMessage("Download backup", "info");
-            var projects = this.modelBackup!.FetchProjects("destination");
-            if (projects.Count == 0)
-            {
-                View.ShowMessage("No backup projects found.", "warning");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(projects);
-            string projectName = projects[selectedIndex].Name;
-
-            var versions = this.modelBackup.FetchVersions(projectName);
-            if (versions.Count == 0)
-            {
-                View.ShowMessage("No versions found for this project.", "warning");
-                return;
-            }
-
-            int versionIndex = View.ShowVersionList(versions);
-            var selectedVersion = versions[versionIndex];
-
-            var state = this.modelBackup.GetBackupState(projectName);
-            state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
-
-            bool success = this.modelBackup.DownloadVersion(
-                projectName,
-                selectedVersion.Path,
-                selectedVersion.IsUpdate,
-                state);
-
-            if (!success)
-            {
-                View.ShowMessage($"Failed to download version: {state.ErrorMessage}", "error");
-            }
-        }
-
         private void SaveProject()
         {
             View.ShowMessage("Save project", "info");
@@ -263,25 +214,6 @@ namespace EasySave.Controllers
                     View.ShowMessage($"Failed to save backup for project: {projectName}", "error");
                 }
             }
-        }
-
-        private void ToggleAutoSave()
-        {
-            View.ShowMessage("Toggle AutoSave", "info");
-            var projects = this.modelBackup!.FetchProjects("source");
-            if (projects.Count == 0)
-            {
-                View.ShowMessage("No source projects found.", "warning");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(projects);
-            string projectName = projects[selectedIndex].Name;
-            bool isEnabled = this.modelBackup.ToggleAutoSave(projectName, 900); // 900 seconds = 15 minutes
-            View.ClearConsole();
-            View.ShowMessage(
-                isEnabled ? $"Auto-save enabled for {projectName}" : $"Auto-save disabled for {projectName}",
-                "info");
         }
     }
 }
