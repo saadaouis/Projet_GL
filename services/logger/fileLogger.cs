@@ -2,6 +2,9 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 
 namespace EasySave.Services.Logger
