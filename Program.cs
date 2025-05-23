@@ -3,6 +3,7 @@
 // </copyright>
 
 using System;
+using System.Security.Cryptography.X509Certificates;
 using Avalonia;
 
 namespace EasySave
@@ -12,6 +13,8 @@ namespace EasySave
     /// </summary>
     internal class Program
     {
+        public static string? LaunchArgument { get; private set; }
+
         /// <summary>
         /// Main method.
         /// </summary>
@@ -19,6 +22,11 @@ namespace EasySave
         [STAThread]
         public static void Main(string[] args)
         {
+            if (args.Length > 0)
+            {
+                LaunchArgument = args[0];
+            }
+
             BuildAvaloniaApp()
                 .StartWithClassicDesktopLifetime(args);
         }
