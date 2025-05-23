@@ -29,20 +29,20 @@ namespace EasySave
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // Configuration du container d'injection de dépendances
+                // Configuration du container d'injection de dï¿½pendances
                 var services = new ServiceCollection();
                 ConfigureServices(services);
                 var serviceProvider = services.BuildServiceProvider();
 
-                // Récupération et initialisation du MainViewModel via DI
+                // Rï¿½cupï¿½ration et initialisation du MainViewModel via DI
                 MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
                 await MainViewModel.InitializeAsync();
 
-                // Récupération du logger
+                // Rï¿½cupï¿½ration du logger
                 var logger = serviceProvider.GetRequiredService<Logger>();
-                logger.Log("Application démarrée avec succès.");
+                logger.Log("Application dï¿½marrï¿½e avec succï¿½s.");
 
-                // Récupération des chemins dynamiques depuis le backupViewModel
+                // Rï¿½cupï¿½ration des chemins dynamiques depuis le backupViewModel
                 string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
                 string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
             
@@ -51,7 +51,7 @@ namespace EasySave
                 logger.LogJson("BackupProjet", source, destination,2028, 1.25666);
                 logger.LogXml("BackupProjet", source, destination, 2038, 1.25666);
 
-                // Configuration et affichage de la fenêtre principale
+                // Configuration et affichage de la fenï¿½tre principale
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = MainViewModel
