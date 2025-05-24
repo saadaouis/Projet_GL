@@ -8,7 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using EasySave.Services.Logger;
+using EasySave.Services.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.Models
 {
@@ -20,9 +21,10 @@ namespace EasySave.Models
         private const int MaxProjects = 5;
         private readonly string sourcePath = string.Empty;
         private readonly string destinationPath = string.Empty;
+
+        private readonly LoggingService loggingService;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
-        private readonly ILogger logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
@@ -30,11 +32,11 @@ namespace EasySave.Models
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
         /// <param name="logger">The logger instance.</param>
-        public ModelBackup(string sourcePath, string destinationPath, ILogger logger)
+        public ModelBackup(string sourcePath, string destinationPath)
         {
             this.sourcePath = sourcePath;
             this.destinationPath = destinationPath;
-            this.logger = logger;
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
         }
 
         /// <summary>
@@ -44,7 +46,7 @@ namespace EasySave.Models
         {
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
-            this.logger = new FileLogger(); // Default to file logging
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
         }
 
         /// <summary>
@@ -66,29 +68,20 @@ namespace EasySave.Models
             }
 
             var projects = new List<Project>();
-            this.logger.Log("Starting FetchProjects()...", "info");
 
             try
             {
-                this.logger.Log($"Fetching directories from: {path}", "info");
-
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(path)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Take(MaxProjects);
-
-                this.logger.Log($"Found {directories.Count()} directories.", "info");
-
                 foreach (var dir in directories)
                 {
-                    this.logger.Log($"Processing directory: {dir.FullName}", "info");
-
                     try
                     {
                         // Calculate directory size
                         double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
-                        this.logger.Log($"Size of {dir.Name}: {sizeInMB:F2} MB", "info");
 
                         // Create project object
                         var project = new Project
@@ -99,20 +92,18 @@ namespace EasySave.Models
                         };
 
                         projects.Add(project);
-                        this.logger.Log($"Project added: {project.Name}, {project.LastBackup}, {project.Size} MB", "info");
                     }
                     catch (Exception ex)
                     {
-                        this.logger.Log($"Error processing directory {dir.Name}: {ex.Message}", "error");
+                        Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error fetching projects: {ex.Message}", "error");
+                Console.WriteLine($"Error fetching projects: {ex.Message}");
             }
 
-            this.logger.Log($"FetchProjects() completed. Total projects fetched: {projects.Count}", "info");
             return projects;
         }
 
@@ -147,8 +138,6 @@ namespace EasySave.Models
                 state.ErrorMessage = null;
                 state.UpdateState();
 
-                this.logger.Log($"Starting {(isDifferential ? "Differential backup" : "Backup")} for project: {projectName}", "info");
-
                 string projectDir = Path.Combine(this.destinationPath, projectName);
                 string saveTypeDir = isDifferential ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
@@ -156,7 +145,6 @@ namespace EasySave.Models
 
                 // Create directories if they don't exist
                 Directory.CreateDirectory(saveDir);
-                this.logger.Log($"Created directory: {saveDir}", "info");
 
                 if (isDifferential)
                 {
@@ -174,55 +162,66 @@ namespace EasySave.Models
                         if (backupDirs.Any())
                         {
                             lastBackupDir = backupDirs.First().FullName;
-                            this.logger.Log($"Found last backup directory: {lastBackupDir}", "info");
                         }
                     }
 
                     // Check if there are any changes before creating a new update
                     if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
                     {
-                        this.logger.Log("No changes detected, skipping auto-save", "info");
                         state.IsComplete = true;
                         state.CurrentOperation = "No changes detected";
                         state.UpdateState();
                         return true;
                     }
-
-                    // Get the next version number
-                    var (major, minor) = GetNextVersionNumber(projectDir, isDifferential);
-                    string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
-                    this.logger.Log($"Creating update version: V{major}.{minor}", "info");
-
-                    // Copy only modified files
-                    if (!string.IsNullOrEmpty(lastBackupDir))
-                    {
-                        this.CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
-                    }
-                    else
-                    {
-                        // If no backup exists, copy everything
-                        if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
-                        {
-                            return false;
-                        }
-                    }
                 }
-                else
+
+                // Get all files from source directory
+                var sourceFiles = Directory.GetFiles(sourceDirPath, "*", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+
+                state.TotalFiles = sourceFiles.Count;
+                state.TotalSize = sourceFiles.Sum(f => f.Length);
+                state.ProcessedFiles = 0;
+                state.ProcessedSize = 0;
+                state.UpdateState();
+
+                var startTime = DateTime.Now;
+                long totalSize = 0;
+
+                foreach (var sourceFile in sourceFiles)
                 {
-                    // For manual backups, copy everything
-                    var (major, minor) = GetNextVersionNumber(projectDir, isDifferential);
-                    string versionDir = Path.Combine(saveDir, $"V{major}");
-                    this.logger.Log($"Creating backup version: V{major}", "info");
-                    if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
-                    {
-                        return false;
-                    }
+                    string relativePath = sourceFile.FullName.Substring(sourceDirPath.Length).TrimStart(Path.DirectorySeparatorChar);
+                    string destFile = Path.Combine(saveDir, relativePath);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                    File.Copy(sourceFile.FullName, destFile, true);
+
+                    totalSize += sourceFile.Length;
+                    state.ProcessedFiles++;
+                    state.ProcessedSize += sourceFile.Length;
+                    state.UpdateState();
                 }
+
+                var endTime = DateTime.Now;
+                var transferTime = (endTime - startTime).TotalSeconds;
+
+                // Log the entire backup operation
+                var logData = new Dictionary<string, string>
+                {
+                    { "Name", projectName },
+                    { "FileSource", sourceDirPath },
+                    { "FileTarget", saveDir },
+                    { "FileSize", totalSize.ToString() },
+                    { "SaveType", isDifferential ? "Differential" : "Full" },
+                    { "FileTransferTime", transferTime.ToString("F3") },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                };
+
+                this.loggingService.Log(logData);
 
                 state.IsComplete = true;
-                state.CurrentOperation = "Complete";
                 state.UpdateState();
-                this.logger.Log($"{(isDifferential ? "Differential backup" : "Backup")} completed successfully", "info");
                 return true;
             }
             catch (Exception ex)
@@ -230,9 +229,7 @@ namespace EasySave.Models
                 var state = this.GetBackupState(projectName);
                 state.IsComplete = true;
                 state.ErrorMessage = ex.Message;
-                state.CurrentOperation = "Error";
                 state.UpdateState();
-                this.logger.Log($"Error saving project: {ex.Message}", "error");
                 return false;
             }
         }
@@ -435,7 +432,7 @@ namespace EasySave.Models
 
                 var lastBackupInfo = new FileInfo(lastBackupFile);
                 return sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
-                       sourceFile.Length != lastBackupInfo.Length;
+                    sourceFile.Length != lastBackupInfo.Length;
             }).ToList();
 
             state.TotalFiles = modifiedFiles.Count;

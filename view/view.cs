@@ -80,6 +80,18 @@ namespace EasySave.Views
         }
 
         /// <summary>
+        /// Displays a message and returns the user's choice.
+        /// </summary>
+        /// <param name="message">The message to display.</param>
+        /// <returns>True if the user wants to make a differential backup, false otherwise.</returns>
+        public static bool ShowDifferentialBackup(string message)
+        {
+            Console.WriteLine(message);
+            string input = Console.ReadLine() ?? string.Empty;
+            return input == "y";
+        }
+
+        /// <summary>
         /// Displays a list of projects and allows the user to select multiple projects.
         /// </summary>
         /// <param name="projects">The list of projects to display.</param>
@@ -238,8 +250,7 @@ namespace EasySave.Views
             Console.ForegroundColor = ConsoleColor.Gray;
             ShowMessage($"║ 1) {(this.language == LanguageEnglish ? "Save backup" : "Sauvegarder une sauvegarde"),-25}║", SeverityText);
             ShowMessage($"║ 2) {(this.language == LanguageEnglish ? "Modify config" : "Modifier la configuration"),-25}║", SeverityText);
-            ShowMessage($"║ 3) {(this.language == LanguageEnglish ? "Toggle console logging" : "Activer/Désactiver log console"),-25}║", SeverityText);
-            ShowMessage($"║ 4) {(this.language == LanguageEnglish ? "Exit" : "Quitter"),-25}║", SeverityText);
+            ShowMessage($"║ 3) {(this.language == LanguageEnglish ? "Exit" : "Quitter"),-25}║", SeverityText);
             ShowMessage("╚════════════════════════════════╝", SeverityInfo);
             Console.ResetColor();
 

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasySave.Services.Logger;
 
 namespace EasySave.Models
 {
@@ -15,7 +14,6 @@ namespace EasySave.Models
     public class ModelConfig
     {
         private readonly string configPath;
-        private readonly ILogger logger;
 
                 /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
@@ -23,7 +21,6 @@ namespace EasySave.Models
         public ModelConfig()
         {
             this.configPath = "config/config.json";
-            this.logger = new FileLogger();
         }
 
         /// <summary>Gets or sets the source directory path.</summary>
@@ -38,6 +35,10 @@ namespace EasySave.Models
         [JsonPropertyName("Language")]
         public string? Language { get; set; } = "En";
 
+        /// <summary>Gets or sets the log type.</summary>
+        [JsonPropertyName("LogType")]
+        public string? LogType { get; set; } = "json";
+
         /// <summary>Loads the configuration from the config file.</summary>
         /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
         public bool Load()
@@ -46,29 +47,26 @@ namespace EasySave.Models
             {
                 if (!File.Exists(this.configPath))
                 {
-                    this.logger.Log("Config file not found", "warning");
                     return false;
                 }
 
                 string jsonString = File.ReadAllText(this.configPath);
                 var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-                this.logger.Log($"Config file found: {this.configPath}", "info");
 
                 if (config != null)
                 {
                     this.Source = config.GetValueOrDefault("Source");
                     this.Destination = config.GetValueOrDefault("Destination");
                     this.Language = config.GetValueOrDefault("Language");
-                    this.logger.Log("Configuration loaded successfully", "info");
+                    this.LogType = config.GetValueOrDefault("LogType");
                     return true;
                 }
 
-                this.logger.Log("Failed to deserialize config file", "error");
                 return false;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error loading configuration: {ex.Message}", "error");
+                Console.WriteLine($"Error loading configuration: {ex.Message}");
                 return false;
             }
         }
@@ -86,12 +84,11 @@ namespace EasySave.Models
                 });
 
                 File.WriteAllText(this.configPath, jsonString);
-                this.logger.Log("Configuration saved successfully", "info");
                 return true;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error saving configuration: {ex.Message}", "error");
+                Console.WriteLine($"Error saving configuration: {ex.Message}");
                 return false;
             }
         }
