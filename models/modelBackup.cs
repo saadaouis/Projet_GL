@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EasySave.Services.Logging;
+using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.Models
@@ -23,6 +24,7 @@ namespace EasySave.Models
         private readonly string destinationPath = string.Empty;
 
         private readonly LoggingService loggingService;
+        private readonly StateService stateService;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
 
@@ -37,6 +39,7 @@ namespace EasySave.Models
             this.sourcePath = sourcePath;
             this.destinationPath = destinationPath;
             this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
+            this.stateService = Program.ServiceExtensions.GetService<StateService>();
         }
 
         /// <summary>
@@ -47,6 +50,7 @@ namespace EasySave.Models
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
             this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
+            this.stateService = Program.ServiceExtensions.GetService<StateService>();
         }
 
         /// <summary>
@@ -186,8 +190,20 @@ namespace EasySave.Models
                 state.ProcessedSize = 0;
                 state.UpdateState();
 
+                // Initialize state tracking
+                this.stateService.UpdateState(
+                    projectName,
+                    sourceDirPath,
+                    saveDir,
+                    sourceFiles.Count,
+                    state.TotalSize,
+                    sourceFiles.Count,
+                    0
+                );
+
                 var startTime = DateTime.Now;
                 long totalSize = 0;
+                int lastProgressUpdate = 0;
 
                 foreach (var sourceFile in sourceFiles)
                 {
@@ -201,6 +217,22 @@ namespace EasySave.Models
                     state.ProcessedFiles++;
                     state.ProcessedSize += sourceFile.Length;
                     state.UpdateState();
+
+                    // Update state every 20% progress
+                    int currentProgress = (int)((double)state.ProcessedFiles / state.TotalFiles * 100);
+                    if (currentProgress >= lastProgressUpdate + 20)
+                    {
+                        lastProgressUpdate = currentProgress;
+                        this.stateService.UpdateState(
+                            projectName,
+                            sourceDirPath,
+                            saveDir,
+                            state.TotalFiles,
+                            state.TotalSize,
+                            state.TotalFiles - state.ProcessedFiles,
+                            currentProgress
+                        );
+                    }
                 }
 
                 var endTime = DateTime.Now;
@@ -219,6 +251,9 @@ namespace EasySave.Models
                 };
 
                 this.loggingService.Log(logData);
+
+                // Mark the backup as complete in state tracking
+                this.stateService.CompleteState(projectName);
 
                 state.IsComplete = true;
                 state.UpdateState();

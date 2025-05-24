@@ -5,7 +5,9 @@
 using EasySave.Controllers;
 using EasySave.Models;
 using EasySave.Services.Logging;
+using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EasySave
 {
@@ -24,29 +26,32 @@ namespace EasySave
         {
             var services = new ServiceCollection();
 
-            // Configure services
+            // First, configure the logging service
+            services.AddSingleton<LoggingService>(sp => new LoggingService("json")); // Default to JSON initially
+
+            // Build initial service provider for logging
+            serviceProvider = services.BuildServiceProvider();
+            loggingService = serviceProvider.GetRequiredService<LoggingService>();
+
+            // Now configure the rest of the services
             services.AddSingleton<ModelConfig>();
             services.AddSingleton<ModelBackup>();
+            services.AddSingleton<StateService>();
 
-            // Build the service provider
+            // Rebuild the service provider with all services
             serviceProvider = services.BuildServiceProvider();
-            if (serviceProvider == null)
+
+            // Load configuration
+            var modelConfig = serviceProvider.GetRequiredService<ModelConfig>();
+            if (modelConfig.Load())
             {
-                Console.WriteLine("Error: Service provider is null");
-                return;
+                // Update logging service with configured log type
+                var configuredLogType = modelConfig.LogType ?? "json";
+                services.RemoveAll<LoggingService>();
+                services.AddSingleton<LoggingService>(sp => new LoggingService(configuredLogType));
+                serviceProvider = services.BuildServiceProvider();
+                loggingService = serviceProvider.GetRequiredService<LoggingService>();
             }
-
-            ModelConfig modelConfig = serviceProvider.GetRequiredService<ModelConfig>();
-            modelConfig.Load();
-
-            // Configure LoggingService with the log type from config
-            services.AddSingleton<LoggingService>(sp => new LoggingService(modelConfig.LogType ?? "json"));
-
-            // Rebuild the service provider with the new LoggingService
-            serviceProvider = services.BuildServiceProvider();
-
-            // Get the logging service instance
-            loggingService = serviceProvider.GetRequiredService<LoggingService>();
 
             Controller controller = new Controller();
             controller.Initialization();

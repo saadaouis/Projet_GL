@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using EasySave.Models;
 using EasySave.Views;
+using EasySave.Services.Logging;
 
 namespace EasySave.Controllers
 {
@@ -21,6 +22,7 @@ namespace EasySave.Controllers
         private List<ModelBackup.Project> projects;
         private ModelBackup? modelBackup;
         private ModelConfig modelConfig;
+        private readonly LoggingService loggingService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Controller"/> class.
@@ -30,6 +32,7 @@ namespace EasySave.Controllers
             this.isRunning = false;
             this.projects = new List<ModelBackup.Project>();
             this.modelConfig = new ModelConfig();
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
         }
 
         /// <summary>
@@ -41,6 +44,13 @@ namespace EasySave.Controllers
             View view = new View();
             View.ClearConsole();
 
+            this.loggingService.Log(new Dictionary<string, string>
+            {
+                { "Operation", "ApplicationStart" },
+                { "Status", "Success" },
+                { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+            });
+
             if (this.modelConfig.Load())
             {
                 View.ShowMessage("Config loaded", "info");
@@ -50,6 +60,16 @@ namespace EasySave.Controllers
 
                     this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                     this.projects = this.modelBackup.FetchProjects();
+
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "InitialConfigLoad" },
+                        { "Status", "Success" },
+                        { "Source", this.modelConfig.Source },
+                        { "Destination", this.modelConfig.Destination },
+                        { "Language", this.modelConfig.Language ?? "En" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
             else
@@ -67,16 +87,38 @@ namespace EasySave.Controllers
                             view.ChangeLanguage(this.modelConfig.Language!);
                             this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                             this.projects = this.modelBackup.FetchProjects();
+
+                            this.loggingService.Log(new Dictionary<string, string>
+                            {
+                                { "Operation", "NewConfigCreated" },
+                                { "Status", "Success" },
+                                { "Source", this.modelConfig.Source },
+                                { "Destination", this.modelConfig.Destination },
+                                { "Language", this.modelConfig.Language ?? "En" },
+                                { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                            });
                         }
                     }
                     else
                     {
                         View.ShowMessage("Failed to load config", "error");
+                        this.loggingService.Log(new Dictionary<string, string>
+                        {
+                            { "Operation", "NewConfigLoad" },
+                            { "Status", "Failed" },
+                            { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                        });
                     }
                 }
                 else
                 {
                     View.ShowMessage("Failed to save config", "error");
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "NewConfigSave" },
+                        { "Status", "Failed" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
 
@@ -139,15 +181,40 @@ namespace EasySave.Controllers
                 {
                     this.projects = this.modelBackup!.FetchProjects();
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
+
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigUpdate" },
+                        { "Status", "Success" },
+                        { "OldSource", this.modelConfig.Source! },
+                        { "NewSource", updatedSource },
+                        { "OldDestination", this.modelConfig.Destination! },
+                        { "NewDestination", updatedDestination },
+                        { "OldLanguage", this.modelConfig.Language! },
+                        { "NewLanguage", updatedLanguage },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
                 else
                 {
                     View.ShowMessage("Failed to reload configuration.", "error");
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigReload" },
+                        { "Status", "Failed" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
             else
             {
                 View.ShowMessage("Failed to update configuration.", "error");
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigUpdate" },
+                    { "Status", "Failed" },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
             }
         }
 
