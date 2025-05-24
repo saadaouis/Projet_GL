@@ -2,7 +2,15 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
-using EasySave.Services.Logger;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using EasySave.Services.Logging;
+using EasySave.Services.State;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.Models
 {
@@ -14,9 +22,11 @@ namespace EasySave.Models
         private const int MaxProjects = 5;
         private readonly string sourcePath = string.Empty;
         private readonly string destinationPath = string.Empty;
+
+        private readonly LoggingService loggingService;
+        private readonly StateService stateService;
         private readonly Dictionary<string, CancellationTokenSource> autoSaveTasks = new();
         private readonly Dictionary<string, BackupState> backupStates = new();
-        private readonly ILogger logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
@@ -24,11 +34,12 @@ namespace EasySave.Models
         /// <param name="sourcePath">The source directory path.</param>
         /// <param name="destinationPath">The destination directory path.</param>
         /// <param name="logger">The logger instance.</param>
-        public ModelBackup(string sourcePath, string destinationPath, ILogger logger)
+        public ModelBackup(string sourcePath, string destinationPath)
         {
             this.sourcePath = sourcePath;
             this.destinationPath = destinationPath;
-            this.logger = logger;
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
+            this.stateService = Program.ServiceExtensions.GetService<StateService>();
         }
 
         /// <summary>
@@ -38,7 +49,8 @@ namespace EasySave.Models
         {
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
-            this.logger = new FileLogger(); // Default to file logging
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
+            this.stateService = Program.ServiceExtensions.GetService<StateService>();
         }
 
         /// <summary>
@@ -60,29 +72,20 @@ namespace EasySave.Models
             }
 
             var projects = new List<Project>();
-            this.logger.Log("Starting FetchProjects()...", "info");
 
             try
             {
-                this.logger.Log($"Fetching directories from: {path}", "info");
-
                 // Get all directories and order by last write time
                 var directories = Directory.GetDirectories(path)
                     .Select(dir => new DirectoryInfo(dir))
                     .OrderByDescending(dir => dir.LastWriteTime)
                     .Take(MaxProjects);
-
-                this.logger.Log($"Found {directories.Count()} directories.", "info");
-
                 foreach (var dir in directories)
                 {
-                    this.logger.Log($"Processing directory: {dir.FullName}", "info");
-
                     try
                     {
                         // Calculate directory size
                         double sizeInMB = CalculateDirectorySize(dir) / (1024.0 * 1024.0);
-                        this.logger.Log($"Size of {dir.Name}: {sizeInMB:F2} MB", "info");
 
                         // Create project object
                         var project = new Project
@@ -93,20 +96,18 @@ namespace EasySave.Models
                         };
 
                         projects.Add(project);
-                        this.logger.Log($"Project added: {project.Name}, {project.LastBackup}, {project.Size} MB", "info");
                     }
                     catch (Exception ex)
                     {
-                        this.logger.Log($"Error processing directory {dir.Name}: {ex.Message}", "error");
+                        Console.WriteLine($"Error processing directory {dir.Name}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error fetching projects: {ex.Message}", "error");
+                Console.WriteLine($"Error fetching projects: {ex.Message}");
             }
 
-            this.logger.Log($"FetchProjects() completed. Total projects fetched: {projects.Count}", "info");
             return projects;
         }
 
@@ -126,54 +127,30 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Toggles auto-save for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
-        public bool ToggleAutoSave(string projectName, int intervalSeconds)
-        {
-            if (this.autoSaveTasks.ContainsKey(projectName))
-            {
-                this.StopAutoSave(projectName);
-                return false;
-            }
-            else
-            {
-                var project = new Project { Name = projectName };
-                this.StartAutoSave(new List<Project> { project }, intervalSeconds);
-                return true;
-            }
-        }
-
-        /// <summary>
         /// Saves a project with the specified version number.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
-        /// <param name="isAutoSave">Whether this is an auto-save operation.</param>
+        /// <param name="isDifferential">Whether this is an differential backup operation.</param>
         /// <returns>True if the save was successful, false otherwise.</returns>
-        public bool SaveProject(string projectName, bool isAutoSave = false)
+        public bool SaveProject(string projectName, bool isDifferential = false)
         {
             try
             {
                 var state = this.GetBackupState(projectName);
-                state.CurrentOperation = isAutoSave ? "Auto-saving" : "Backing up";
+                state.CurrentOperation = isDifferential ? "Differential backup" : "Backup";
                 state.IsComplete = false;
                 state.ErrorMessage = null;
                 state.UpdateState();
 
-                this.logger.Log($"Starting {(isAutoSave ? "auto-save" : "backup")} for project: {projectName}", "info");
-
                 string projectDir = Path.Combine(this.destinationPath, projectName);
-                string saveTypeDir = isAutoSave ? "updates" : "backups";
+                string saveTypeDir = isDifferential ? "updates" : "backups";
                 string saveDir = Path.Combine(projectDir, saveTypeDir);
                 string sourceDirPath = Path.Combine(this.sourcePath, projectName);
 
                 // Create directories if they don't exist
                 Directory.CreateDirectory(saveDir);
-                this.logger.Log($"Created directory: {saveDir}", "info");
 
-                if (isAutoSave)
+                if (isDifferential)
                 {
                     // For auto-save, find the latest backup directory
                     string backupsDir = Path.Combine(projectDir, "backups");
@@ -189,55 +166,97 @@ namespace EasySave.Models
                         if (backupDirs.Any())
                         {
                             lastBackupDir = backupDirs.First().FullName;
-                            this.logger.Log($"Found last backup directory: {lastBackupDir}", "info");
                         }
                     }
 
                     // Check if there are any changes before creating a new update
                     if (!string.IsNullOrEmpty(lastBackupDir) && !HasModifiedFiles(sourceDirPath, lastBackupDir))
                     {
-                        this.logger.Log("No changes detected, skipping auto-save", "info");
                         state.IsComplete = true;
                         state.CurrentOperation = "No changes detected";
                         state.UpdateState();
                         return true;
                     }
-
-                    // Get the next version number
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
-                    string versionDir = Path.Combine(saveDir, $"V{major}.{minor}");
-                    this.logger.Log($"Creating update version: V{major}.{minor}", "info");
-
-                    // Copy only modified files
-                    if (!string.IsNullOrEmpty(lastBackupDir))
-                    {
-                        this.CopyModifiedFilesWithProgress(sourceDirPath, versionDir, lastBackupDir, state);
-                    }
-                    else
-                    {
-                        // If no backup exists, copy everything
-                        if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
-                        {
-                            return false;
-                        }
-                    }
                 }
-                else
+
+                // Get all files from source directory
+                var sourceFiles = Directory.GetFiles(sourceDirPath, "*", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+
+                state.TotalFiles = sourceFiles.Count;
+                state.TotalSize = sourceFiles.Sum(f => f.Length);
+                state.ProcessedFiles = 0;
+                state.ProcessedSize = 0;
+                state.UpdateState();
+
+                // Initialize state tracking
+                this.stateService.UpdateState(
+                    projectName,
+                    sourceDirPath,
+                    saveDir,
+                    sourceFiles.Count,
+                    state.TotalSize,
+                    sourceFiles.Count,
+                    0
+                );
+
+                var startTime = DateTime.Now;
+                long totalSize = 0;
+                int lastProgressUpdate = 0;
+
+                foreach (var sourceFile in sourceFiles)
                 {
-                    // For manual backups, copy everything
-                    var (major, minor) = GetNextVersionNumber(projectDir, isAutoSave);
-                    string versionDir = Path.Combine(saveDir, $"V{major}");
-                    this.logger.Log($"Creating backup version: V{major}", "info");
-                    if (!this.CopyDirectoryRecursive(sourceDirPath, versionDir, state))
+                    string relativePath = sourceFile.FullName.Substring(sourceDirPath.Length).TrimStart(Path.DirectorySeparatorChar);
+                    string destFile = Path.Combine(saveDir, relativePath);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                    File.Copy(sourceFile.FullName, destFile, true);
+
+                    totalSize += sourceFile.Length;
+                    state.ProcessedFiles++;
+                    state.ProcessedSize += sourceFile.Length;
+                    state.UpdateState();
+
+                    // Update state every 20% progress
+                    int currentProgress = (int)((double)state.ProcessedFiles / state.TotalFiles * 100);
+                    if (currentProgress >= lastProgressUpdate + 20)
                     {
-                        return false;
+                        lastProgressUpdate = currentProgress;
+                        this.stateService.UpdateState(
+                            projectName,
+                            sourceDirPath,
+                            saveDir,
+                            state.TotalFiles,
+                            state.TotalSize,
+                            state.TotalFiles - state.ProcessedFiles,
+                            currentProgress
+                        );
                     }
                 }
+
+                var endTime = DateTime.Now;
+                var transferTime = (endTime - startTime).TotalSeconds;
+
+                // Log the entire backup operation
+                var logData = new Dictionary<string, string>
+                {
+                    { "Name", projectName },
+                    { "FileSource", sourceDirPath },
+                    { "FileTarget", saveDir },
+                    { "FileSize", totalSize.ToString() },
+                    { "SaveType", isDifferential ? "Differential" : "Full" },
+                    { "FileTransferTime", transferTime.ToString("F3") },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                };
+
+                this.loggingService.Log(logData);
+
+                // Mark the backup as complete in state tracking
+                this.stateService.CompleteState(projectName);
 
                 state.IsComplete = true;
-                state.CurrentOperation = "Complete";
                 state.UpdateState();
-                this.logger.Log($"{(isAutoSave ? "Auto-save" : "Backup")} completed successfully", "info");
                 return true;
             }
             catch (Exception ex)
@@ -245,176 +264,6 @@ namespace EasySave.Models
                 var state = this.GetBackupState(projectName);
                 state.IsComplete = true;
                 state.ErrorMessage = ex.Message;
-                state.CurrentOperation = "Error";
-                state.UpdateState();
-                this.logger.Log($"Error saving project: {ex.Message}", "error");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Starts auto-save for a project.
-        /// </summary>
-        /// <param name="projects">The list of projects to auto-save.</param>
-        /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        public void StartAutoSave(List<ModelBackup.Project> projects, int intervalSeconds)
-        {
-            foreach (var project in projects)
-            {
-                if (this.autoSaveTasks.ContainsKey(project.Name))
-                {
-                    this.StopAutoSave(project.Name);
-                }
-
-                var cts = new CancellationTokenSource();
-                this.autoSaveTasks[project.Name] = cts;
-
-                Task.Run(
-                async () =>
-                {
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        await Task.Delay(intervalSeconds * 1000, cts.Token);
-                        if (!cts.Token.IsCancellationRequested)
-                        {
-                            this.SaveProject(project.Name, true);
-                        }
-                    }
-            },
-                cts.Token);
-            }
-        }
-
-        /// <summary>
-        /// Stops auto-save for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        public void StopAutoSave(string projectName)
-        {
-            if (this.autoSaveTasks.TryGetValue(projectName, out var cts))
-            {
-                cts.Cancel();
-                this.autoSaveTasks.Remove(projectName);
-            }
-        }
-
-         /// <summary>
-        /// Gets all available versions for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <returns>A list of versions with their paths and types.</returns>
-        public List<(string Path, string Version, bool IsUpdate)> FetchVersions(string projectName)
-        {
-            var versions = new List<(string Path, string Version, bool IsUpdate)>();
-            string projectPath = Path.Combine(this.destinationPath, projectName);
-
-            // Get major versions
-            string backupsDir = Path.Combine(projectPath, "backups");
-            if (Directory.Exists(backupsDir))
-            {
-                foreach (var dir in Directory.GetDirectories(backupsDir))
-                {
-                    string version = Path.GetFileName(dir);
-                    if (version.StartsWith("V"))
-                    {
-                        versions.Add((dir, version, false));
-                    }
-                }
-            }
-
-            // Get updates
-            string updatesDir = Path.Combine(projectPath, "updates");
-            if (Directory.Exists(updatesDir))
-            {
-                foreach (var dir in Directory.GetDirectories(updatesDir))
-                {
-                    string version = Path.GetFileName(dir);
-                    if (version.StartsWith("V"))
-                    {
-                        versions.Add((dir, version, true));
-                    }
-                }
-            }
-
-            // Sort versions
-            versions.Sort((a, b) =>
-            {
-                var aParts = a.Version.Split('.');
-                var bParts = b.Version.Split('.');
-
-                int aMajor = int.Parse(aParts[0].Substring(1));
-                int bMajor = int.Parse(bParts[0].Substring(1));
-
-                if (aMajor != bMajor)
-                {
-                    return aMajor.CompareTo(bMajor);
-                }
-
-                if (a.IsUpdate && b.IsUpdate)
-                {
-                    int aMinor = int.Parse(aParts[1]);
-                    int bMinor = int.Parse(bParts[1]);
-                    return aMinor.CompareTo(bMinor);
-                }
-
-                return a.IsUpdate ? 1 : -1;
-            });
-
-            return versions;
-        }
-
-        /// <summary>
-        /// Downloads a specific version of a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="versionPath">The path to the version to download.</param>
-        /// <param name="isUpdate">Whether this is an update version.</param>
-        /// <param name="state">The backup state to update progress.</param>
-        /// <returns>True if the download was successful, false otherwise.</returns>
-        public bool DownloadVersion(string projectName, string versionPath, bool isUpdate, BackupState state)
-        {
-            try
-            {
-                string targetPath = Path.Combine(this.sourcePath, projectName);
-
-                if (isUpdate)
-                {
-                    string majorVersion = Path.GetFileName(versionPath).Split('.')[0];
-                    string majorVersionPath = Path.Combine(this.destinationPath, projectName, "backups", majorVersion);
-
-                    if (!Directory.Exists(majorVersionPath))
-                    {
-                        state.ErrorMessage = $"Major version {majorVersion} not found.";
-                        return false;
-                    }
-
-                    state.CurrentOperation = $"Downloading major version {majorVersion}";
-                    state.UpdateState();
-
-                    if (!this.CopyDirectoryRecursive(majorVersionPath, targetPath, state))
-                    {
-                        return false;
-                    }
-                }
-
-                state.CurrentOperation = $"Downloading version {Path.GetFileName(versionPath)}";
-                state.UpdateState();
-
-                if (!this.CopyDirectoryRecursive(versionPath, targetPath, state))
-                {
-                    return false;
-                }
-
-                state.IsComplete = true;
-                state.CurrentOperation = "Download complete";
-                state.UpdateState();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                state.IsComplete = true;
-                state.ErrorMessage = ex.Message;
-                state.CurrentOperation = "Error";
                 state.UpdateState();
                 return false;
             }
@@ -618,7 +467,7 @@ namespace EasySave.Models
 
                 var lastBackupInfo = new FileInfo(lastBackupFile);
                 return sourceFile.LastWriteTime > lastBackupInfo.LastWriteTime ||
-                       sourceFile.Length != lastBackupInfo.Length;
+                    sourceFile.Length != lastBackupInfo.Length;
             }).ToList();
 
             state.TotalFiles = modifiedFiles.Count;

@@ -2,6 +2,8 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+
 namespace EasySave.Models
 {
     /// <summary>

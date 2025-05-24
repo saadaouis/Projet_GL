@@ -2,6 +2,9 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using EasySave.Models;
 
 namespace EasySave.Views
@@ -74,6 +77,18 @@ namespace EasySave.Views
             }
 
             return selected - 1;
+        }
+
+        /// <summary>
+        /// Displays a message and returns the user's choice.
+        /// </summary>
+        /// <param name="message">The message to display.</param>
+        /// <returns>True if the user wants to make a differential backup, false otherwise.</returns>
+        public static bool ShowDifferentialBackup(string message)
+        {
+            Console.WriteLine(message);
+            string input = Console.ReadLine() ?? string.Empty;
+            return input == "y";
         }
 
         /// <summary>
@@ -226,25 +241,33 @@ namespace EasySave.Views
         /// <returns>The choice of the user.</returns>
         public int ShowMenu()
         {
-            ShowMessage(this.language == LanguageEnglish ? "Main menu" : "Menu principal", SeverityInfo);
-            ShowMessage(this.language == LanguageEnglish ? "1) Download backup" : "1) Sauvegarder une sauvegarde", SeverityText);
-            ShowMessage(this.language == LanguageEnglish ? "2) Save backup" : "2) Sauvegarder une sauvegarde", SeverityText);
-            ShowMessage(this.language == LanguageEnglish ? "3) Toogle AutoSave" : "3) Activer/Désactiver l'enregistrement automatique", SeverityText);
-            ShowMessage(this.language == LanguageEnglish ? "4) Modify config" : "4) Modifier la configuration", SeverityText);
-            ShowMessage(this.language == LanguageEnglish ? "5) Toggle console logging" : "5) Activer/Désactiver le journalisation console", SeverityText);
-            ShowMessage(this.language == LanguageEnglish ? "6) Exit" : "6) Quitter", SeverityText);
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            ShowMessage("╔════════════════════════════════╗", SeverityInfo);
+            ShowMessage($"║   {(this.language == LanguageEnglish ? "MAIN MENU" : "MENU PRINCIPAL"),-26}║", SeverityInfo);
+            ShowMessage("╠════════════════════════════════╣", SeverityInfo);
+
+            Console.ForegroundColor = ConsoleColor.Gray;
+            ShowMessage($"║ 1) {(this.language == LanguageEnglish ? "Save backup" : "Sauvegarder une sauvegarde"),-25}║", SeverityText);
+            ShowMessage($"║ 2) {(this.language == LanguageEnglish ? "Modify config" : "Modifier la configuration"),-25}║", SeverityText);
+            ShowMessage($"║ 3) {(this.language == LanguageEnglish ? "Exit" : "Quitter"),-25}║", SeverityText);
+            ShowMessage("╚════════════════════════════════╝", SeverityInfo);
+            Console.ResetColor();
 
             while (true)
             {
-                string? choice = Console.ReadLine();
-                if (choice != null && int.TryParse(choice, out int choiceInt) &&
+                Console.Write(this.language == LanguageEnglish ? "Enter your choice: " : "Entrez votre choix : ");
+                string? input = Console.ReadLine();
+                if (input != null && int.TryParse(input, out int choiceInt) &&
                     choiceInt >= MinMenuChoice && choiceInt <= MaxMenuChoice)
                 {
                     return choiceInt;
                 }
                 else
                 {
-                    ShowMessage("Invalid choice", SeverityError);
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    ShowMessage(this.language == LanguageEnglish ? "Invalid choice!" : "Choix invalide !", SeverityError);
+                    Console.ResetColor();
                 }
             }
         }

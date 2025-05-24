@@ -2,9 +2,14 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using EasySave.Models;
-using EasySave.Services.Logger;
 using EasySave.Views;
+using EasySave.Services.Logging;
 
 namespace EasySave.Controllers
 {
@@ -13,12 +18,11 @@ namespace EasySave.Controllers
     /// </summary>
     public class Controller
     {
-        private readonly ILogger fileLogger;
-        private readonly ILogger consoleLogger;
         private bool isRunning;
         private List<ModelBackup.Project> projects;
         private ModelBackup? modelBackup;
         private ModelConfig modelConfig;
+        private readonly LoggingService loggingService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Controller"/> class.
@@ -28,11 +32,7 @@ namespace EasySave.Controllers
             this.isRunning = false;
             this.projects = new List<ModelBackup.Project>();
             this.modelConfig = new ModelConfig();
-            this.fileLogger = new FileLogger();
-            this.consoleLogger = new ConsoleLogger { IsEnabled = false }; // Disabled by default
-
-            // Log initialization
-            this.fileLogger.Log("Controller initialized", "info");
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
         }
 
         /// <summary>
@@ -41,52 +41,84 @@ namespace EasySave.Controllers
         public void Initialization()
         {
             this.isRunning = true;
-            this.fileLogger.Log("Starting application", "info");
             View view = new View();
+            View.ClearConsole();
+
+            this.loggingService.Log(new Dictionary<string, string>
+            {
+                { "Operation", "ApplicationStart" },
+                { "Status", "Success" },
+                { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+            });
 
             if (this.modelConfig.Load())
             {
-                this.fileLogger.Log("Config loaded", "info");
                 View.ShowMessage("Config loaded", "info");
                 if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                 {
                     view.ChangeLanguage(this.modelConfig.Language!);
-                    this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
-                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
+
+                    this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                     this.projects = this.modelBackup.FetchProjects();
+
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "InitialConfigLoad" },
+                        { "Status", "Success" },
+                        { "Source", this.modelConfig.Source },
+                        { "Destination", this.modelConfig.Destination },
+                        { "Language", this.modelConfig.Language ?? "En" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
             else
             {
-                this.fileLogger.Log("No config found", "error");
                 View.ShowMessage("No config found", "error");
                 Dictionary<string, string> config = view.InitializeForm();
                 if (this.modelConfig.SaveOrOverride(config))
                 {
-                    this.fileLogger.Log("Config saved", "info");
                     View.ShowMessage("Config saved", "info");
                     if (this.modelConfig.Load())
                     {
-                        this.fileLogger.Log("Config loaded", "info");
                         View.ShowMessage("Config loaded", "info");
                         if (!string.IsNullOrEmpty(this.modelConfig.Source) && !string.IsNullOrEmpty(this.modelConfig.Destination))
                         {
                             view.ChangeLanguage(this.modelConfig.Language!);
-                            this.fileLogger.Log($"Initializing ModelBackup with source: {this.modelConfig.Source} and destination: {this.modelConfig.Destination}", "info");
-                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination, this.fileLogger);
+                            this.modelBackup = new ModelBackup(this.modelConfig.Source, this.modelConfig.Destination);
                             this.projects = this.modelBackup.FetchProjects();
+
+                            this.loggingService.Log(new Dictionary<string, string>
+                            {
+                                { "Operation", "NewConfigCreated" },
+                                { "Status", "Success" },
+                                { "Source", this.modelConfig.Source },
+                                { "Destination", this.modelConfig.Destination },
+                                { "Language", this.modelConfig.Language ?? "En" },
+                                { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                            });
                         }
                     }
                     else
                     {
-                        this.fileLogger.Log("Failed to load config", "error");
                         View.ShowMessage("Failed to load config", "error");
+                        this.loggingService.Log(new Dictionary<string, string>
+                        {
+                            { "Operation", "NewConfigLoad" },
+                            { "Status", "Failed" },
+                            { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                        });
                     }
                 }
                 else
                 {
-                    this.fileLogger.Log("Failed to save config", "error");
                     View.ShowMessage("Failed to save config", "error");
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "NewConfigSave" },
+                        { "Status", "Failed" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
 
@@ -97,26 +129,13 @@ namespace EasySave.Controllers
                 {
                     case 1:
                         View.ClearConsole();
-                        this.DownloadBackup();
+                        this.SaveProject();
                         break;
                     case 2:
                         View.ClearConsole();
-                        this.SaveProject();
-                        break;
-                    case 3:
-                        View.ClearConsole();
-                        this.ToggleAutoSave();
-                        break;
-                    case 4:
-                        View.ClearConsole();
-                        View.ShowMessage("Modify config", "info");
                         this.ModifyConfig();
                         break;
-                    case 5:
-                        View.ClearConsole();
-                        this.ToggleConsoleLogging();
-                        break;
-                    case 6:
+                    case 3:
                         View.ShowMessage("Exit", "info");
                         this.isRunning = false;
                         break;
@@ -125,26 +144,6 @@ namespace EasySave.Controllers
                         View.ShowMessage("Invalid choice", "error");
                         break;
                 }
-            }
-        }
-
-        /// <summary>
-        /// Toggles console logging on/off.
-        /// </summary>
-        private void ToggleConsoleLogging()
-        {
-            this.consoleLogger.Log("Toggle Console Logging", "info"); // This will display all logs from the file
-        }
-
-        /// <summary>
-        /// Logs a message to all enabled loggers.
-        /// </summary>
-        private void LogMessage(string message, string severity)
-        {
-            this.fileLogger.Log(message, severity);
-            if (this.consoleLogger.IsEnabled)
-            {
-                this.consoleLogger.Log(message, severity);
             }
         }
 
@@ -182,56 +181,40 @@ namespace EasySave.Controllers
                 {
                     this.projects = this.modelBackup!.FetchProjects();
                     View.ShowMessage("Projects reloaded with new configuration.", "info");
+
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigUpdate" },
+                        { "Status", "Success" },
+                        { "OldSource", this.modelConfig.Source! },
+                        { "NewSource", updatedSource },
+                        { "OldDestination", this.modelConfig.Destination! },
+                        { "NewDestination", updatedDestination },
+                        { "OldLanguage", this.modelConfig.Language! },
+                        { "NewLanguage", updatedLanguage },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
                 else
                 {
                     View.ShowMessage("Failed to reload configuration.", "error");
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigReload" },
+                        { "Status", "Failed" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                 }
             }
             else
             {
                 View.ShowMessage("Failed to update configuration.", "error");
-            }
-        }
-
-        /// <summary>
-        /// Allows the user to download a backup version.
-        /// </summary>
-        private void DownloadBackup()
-        {
-            View.ShowMessage("Download backup", "info");
-            var projects = this.modelBackup!.FetchProjects("destination");
-            if (projects.Count == 0)
-            {
-                View.ShowMessage("No backup projects found.", "warning");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(projects);
-            string projectName = projects[selectedIndex].Name;
-
-            var versions = this.modelBackup.FetchVersions(projectName);
-            if (versions.Count == 0)
-            {
-                View.ShowMessage("No versions found for this project.", "warning");
-                return;
-            }
-
-            int versionIndex = View.ShowVersionList(versions);
-            var selectedVersion = versions[versionIndex];
-
-            var state = this.modelBackup.GetBackupState(projectName);
-            state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
-
-            bool success = this.modelBackup.DownloadVersion(
-                projectName,
-                selectedVersion.Path,
-                selectedVersion.IsUpdate,
-                state);
-
-            if (!success)
-            {
-                View.ShowMessage($"Failed to download version: {state.ErrorMessage}", "error");
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigUpdate" },
+                    { "Status", "Failed" },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
             }
         }
 
@@ -245,6 +228,9 @@ namespace EasySave.Controllers
                 return;
             }
 
+            var isDifferentialBackup = View.ShowDifferentialBackup("Do you want to make a differential backup? (y/n)");
+            View.ClearConsole();
+
             List<int> selectedIndices = View.ShowMultipleProjectList(projects);
             foreach (int index in selectedIndices)
             {
@@ -252,31 +238,12 @@ namespace EasySave.Controllers
                 var state = this.modelBackup.GetBackupState(projectName);
                 state.StateChanged += (sender, state) => View.ShowBackupProgress(state);
 
-                bool success = this.modelBackup.SaveProject(projectName);
+                bool success = this.modelBackup.SaveProject(projectName, isDifferentialBackup);
                 if (!success)
                 {
                     View.ShowMessage($"Failed to save backup for project: {projectName}", "error");
                 }
             }
-        }
-
-        private void ToggleAutoSave()
-        {
-            View.ShowMessage("Toggle AutoSave", "info");
-            var projects = this.modelBackup!.FetchProjects("source");
-            if (projects.Count == 0)
-            {
-                View.ShowMessage("No source projects found.", "warning");
-                return;
-            }
-
-            int selectedIndex = View.ShowProjectList(projects);
-            string projectName = projects[selectedIndex].Name;
-            bool isEnabled = this.modelBackup.ToggleAutoSave(projectName, 900); // 900 seconds = 15 minutes
-            View.ClearConsole();
-            View.ShowMessage(
-                isEnabled ? $"Auto-save enabled for {projectName}" : $"Auto-save disabled for {projectName}",
-                "info");
         }
     }
 }

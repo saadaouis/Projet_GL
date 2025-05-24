@@ -2,9 +2,12 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasySave.Services.Logger;
+using EasySave.Services.Logging;
 
 namespace EasySave.Models
 {
@@ -12,15 +15,15 @@ namespace EasySave.Models
     public class ModelConfig
     {
         private readonly string configPath;
-        private readonly ILogger logger;
+        private readonly LoggingService loggingService;
 
-                /// <summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="ModelConfig"/> class.
         /// </summary>
         public ModelConfig()
         {
             this.configPath = "config/config.json";
-            this.logger = new FileLogger();
+            this.loggingService = Program.ServiceExtensions.GetService<LoggingService>();
         }
 
         /// <summary>Gets or sets the source directory path.</summary>
@@ -35,6 +38,10 @@ namespace EasySave.Models
         [JsonPropertyName("Language")]
         public string? Language { get; set; } = "En";
 
+        /// <summary>Gets or sets the log type.</summary>
+        [JsonPropertyName("LogType")]
+        public string? LogType { get; set; } = "json";
+
         /// <summary>Loads the configuration from the config file.</summary>
         /// <returns>True if the configuration was loaded successfully, false otherwise.</returns>
         public bool Load()
@@ -43,29 +50,58 @@ namespace EasySave.Models
             {
                 if (!File.Exists(this.configPath))
                 {
-                    this.logger.Log("Config file not found", "warning");
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigLoad" },
+                        { "Status", "Failed" },
+                        { "Reason", "Config file not found" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                     return false;
                 }
 
                 string jsonString = File.ReadAllText(this.configPath);
                 var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-                this.logger.Log($"Config file found: {this.configPath}", "info");
 
                 if (config != null)
                 {
                     this.Source = config.GetValueOrDefault("Source");
                     this.Destination = config.GetValueOrDefault("Destination");
                     this.Language = config.GetValueOrDefault("Language");
-                    this.logger.Log("Configuration loaded successfully", "info");
+                    this.LogType = config.GetValueOrDefault("LogType");
+
+                    this.loggingService.Log(new Dictionary<string, string>
+                    {
+                        { "Operation", "ConfigLoad" },
+                        { "Status", "Success" },
+                        { "Source", this.Source ?? "Not set" },
+                        { "Destination", this.Destination ?? "Not set" },
+                        { "Language", this.Language ?? "En" },
+                        { "LogType", this.LogType ?? "json" },
+                        { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    });
                     return true;
                 }
 
-                this.logger.Log("Failed to deserialize config file", "error");
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigLoad" },
+                    { "Status", "Failed" },
+                    { "Reason", "Invalid config format" },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
                 return false;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error loading configuration: {ex.Message}", "error");
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigLoad" },
+                    { "Status", "Failed" },
+                    { "Reason", ex.Message },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
+                Console.WriteLine($"Error loading configuration: {ex.Message}");
                 return false;
             }
         }
@@ -83,12 +119,29 @@ namespace EasySave.Models
                 });
 
                 File.WriteAllText(this.configPath, jsonString);
-                this.logger.Log("Configuration saved successfully", "info");
+
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigSave" },
+                    { "Status", "Success" },
+                    { "Source", config.GetValueOrDefault("Source", "Not set") },
+                    { "Destination", config.GetValueOrDefault("Destination", "Not set") },
+                    { "Language", config.GetValueOrDefault("Language", "En") },
+                    { "LogType", config.GetValueOrDefault("LogType", "json") },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
                 return true;
             }
             catch (Exception ex)
             {
-                this.logger.Log($"Error saving configuration: {ex.Message}", "error");
+                this.loggingService.Log(new Dictionary<string, string>
+                {
+                    { "Operation", "ConfigSave" },
+                    { "Status", "Failed" },
+                    { "Reason", ex.Message },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                });
+                Console.WriteLine($"Error saving configuration: {ex.Message}");
                 return false;
             }
         }
