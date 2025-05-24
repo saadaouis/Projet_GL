@@ -14,6 +14,8 @@ namespace EasySave
     internal class Program
     {
         public static string? LaunchArgument { get; private set; }
+        public static string? ProjectArgument { get; private set; }
+
 
         /// <summary>
         /// Main method.
@@ -22,9 +24,20 @@ namespace EasySave
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args.Length > 0)
+            if (args[0].Length > 0)
             {
-                LaunchArgument = args[0];
+                if (args[1].Length > 0 && args[0].Contains("config"))
+                {
+                    Console.WriteLine("Config doesn't need arguments");
+                    LaunchArgument = args[0];
+                }
+                else if (args[1].Length > 0 && !args[1].Contains("config"))
+                {
+                    Console.WriteLine("Your choice is : " + args[0]);
+                    Console.WriteLine("Your project is : " + args[1]);
+                    LaunchArgument = args[0];
+                    ProjectArgument = args[1];
+                }
             }
 
             BuildAvaloniaApp()
