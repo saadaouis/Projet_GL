@@ -41,8 +41,8 @@ namespace EasySave
         public ModelBackup ModelBackup { get; private set; }
         public ModelConfig ModelConfig { get; private set; }
 
-        private string argument;
-        private string projnum;
+        private string argument = Program.LaunchArgument ?? string.Empty;
+        private string projnum = Program.ProjectArgument ?? string.Empty;
         private int x = 0;
         private int y = 0;
 
@@ -69,8 +69,15 @@ namespace EasySave
 
                 try
                 {
-                    // Assuming ModelConfig is registered and should be used here
-                    ModelConfig.Load();
+                    // Load config
+                    var config = ModelConfig.Load();
+
+                    // Set paths in ModelBackup
+                    if (!string.IsNullOrEmpty(config.Source))
+                    ModelBackup.SourcePath = config.Source;
+
+                    if (!string.IsNullOrEmpty(config.Destination))
+                    ModelBackup.DestinationPath = config.Destination;
                 }
                 catch
                 {
@@ -83,76 +90,93 @@ namespace EasySave
                 List<EasySave.Models.ModelBackup.Project> list = await ModelBackup.FetchProjectsAsync();
 
                 char? separator = null;
+                string[] parts = Array.Empty<string>();
 
-                if (projnum.Contains('-'))
-                {
-                    separator = '-';
-                }
-                else if (projnum.Contains(';'))
-                {
-                    separator = ';';
-                }
 
-                if (separator != null)
+                if (!string.IsNullOrEmpty(projnum))
                 {
-                    var parts = projnum.Split(separator.Value);
-                    if (parts.Length == 2)
+                    if (projnum.Contains('-'))
                     {
-                        x = int.Parse(parts[0]);
-                        y = int.Parse(parts[1]);
+                        separator = '-';
                     }
-                }
-
-                if (list != null && list.Count > 0)
-                {
-                    if (argument == "save")
+                    else if (projnum.Contains(';'))
                     {
-                        if (separator == '-')
+                        separator = ';';
+                    }
+
+                    if (separator != null)
+                    {
+                        parts = projnum.Split(separator.Value);
+                        if (parts.Length == 2)
                         {
-                            for (int i = x; i < y; i++)
+                            x = int.Parse(parts[0]);
+                            y = int.Parse(parts[1]);
+                        }
+                    }
+
+                    if (list != null && list.Count > 0)
+                    {
+                        if (argument == "save")
+                        {
+                            if (separator == '-')
                             {
-                                await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: false);
+                                if (parts.Length == 2 && int.TryParse(parts[0], out int start) && int.TryParse(parts[1], out int end))
+                                {
+                                    // Convert to zero-based indices
+                                    x = start - 1;
+                                    y = end - 1;
+                                    for (int i = x; i <= y; i++)
+                                    {
+                                        Console.WriteLine($"Saving project (-): {list[i].Name}");
+                                        await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: false);
+                                    }
+                                }
+                            }
+                            else if (separator == ';')
+                            {
+                                parts = projnum.Split(';');
+                                foreach (var part in parts)
+                                {
+                                    if (int.TryParse(part, out int idx))
+                                    {
+                                        idx -= 1; // zero-based
+                                        if (idx >= 0 && idx < list.Count)
+                                        {
+                                            Console.WriteLine($"Saving project (;): {list[idx].Name}");
+                                            await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: false);
+                                        }
+                                    }
+                                }
                             }
                         }
-                        else if (separator == ';')
+                        else if (argument == "diff")
                         {
-                            var parts = projnum.Split(';');
-                            foreach (var part in parts)
+                            if (separator == '-')
                             {
-                                if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
+                                for (int i = x; i <= y; i++)
                                 {
-                                    await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: false);
+                                    await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: true);
+                                }
+                            }
+                            else if (separator == ';')
+                            {
+                                parts = projnum.Split(';');
+                                foreach (var part in parts)
+                                {
+                                    if (int.TryParse(part, out int idx))
+                                    {
+                                        idx -= 1; // Convert to zero-based index
+                                        if (idx >= 0 && idx < list.Count)
+                                        {
+                                            Console.WriteLine($"Saving project (;): {list[idx].Name} (diff: true)");
+                                            await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: true);
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    else if (argument == "diff")
-                    {
-                        if (separator == '-')
-                        {
-                            for (int i = x; i < y; i++)
-                            {
-                                await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: true);
-                            }
-                        }
-                        else if (separator == ';')
-                        {
-                            var parts = projnum.Split(';');
-                            foreach (var part in parts)
-                            {
-                                if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
-                                {
-                                    await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: true);
-                                }
-                            }
-                        }
-                    }
                 }
-                else
-                {
-                    Console.WriteLine("No project found.");
-                }
-
                 // Récupération des chemins dynamiques depuis le backupViewModel
                 string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
                 string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
