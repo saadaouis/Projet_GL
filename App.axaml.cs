@@ -3,17 +3,18 @@
 // </copyright>
 
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using EasySave.ViewModels;
 using EasySave.Views;
-using Microsoft.Extensions.DependencyInjection;
 using CryptoSoftService;
 using System;
 using EasySave.Services.Logging; // Pour Logger
-using System.Collections.Generic;
 using EasySave.Models; // Pour ModelConfig
+using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
+
 namespace EasySave
 {
     /// <summary>
@@ -26,7 +27,8 @@ namespace EasySave
             return App.ServiceProvider.GetRequiredService<T>();
         }
     }
-  
+
+    /// <summary>
     /// Classe principale de l'application.
     /// </summary>
     public partial class App : Application
@@ -35,7 +37,7 @@ namespace EasySave
         /// Global access to the service provider
         /// </summary>
         public static IServiceProvider ServiceProvider { get; private set; }
-        
+
         public MainViewModel MainViewModel { get; private set; }
 
         public override void Initialize()
@@ -45,34 +47,57 @@ namespace EasySave
 
         public override async void OnFrameworkInitializationCompleted()
         {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+           if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        var serviceProvider = services.BuildServiceProvider();
+        ServiceProvider = serviceProvider;
+
+        MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
+        await MainViewModel.InitializeAsync();
+
+        var forbiddenAppManager = new ForbiddenAppManager();
+        forbiddenAppManager.AddForbiddenProcess("notepad");
+        forbiddenAppManager.AddForbiddenProcess("calc");
+
+        if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
+        {
+            // Console visible uniquement si ton projet est en mode Console Application
+            Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
+
+            // Créer une fenêtre temporaire pour afficher l'alerte
+            var warningWindow = new Window
             {
-                // Configuration du container d'injection de dépendances
-                var services = new ServiceCollection();
-                ConfigureServices(services);
-                var serviceProvider = services.BuildServiceProvider();
-                ServiceProvider = serviceProvider;  // Store the service provider
-
-                // Récupération et initialisation du MainViewModel via DI
-                MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
-                await MainViewModel.InitializeAsync();
-
-                // Récupération des chemins dynamiques depuis le backupViewModel
-                string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
-                string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
-            
-
-
-                // Configuration et affichage de la fenêtre principale
-                desktop.MainWindow = new MainWindow
+                Title = "Processus interdit détecté",
+                Width = 400,
+                Height = 150,
+                Content = new TextBlock
                 {
-                    DataContext = MainViewModel
-                };
+                    Text = $"L'application interdite '{runningApp}' est en cours d'exécution.\nVeuillez la fermer avant de continuer.",
+                    Margin = new Thickness(20),
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                }
+            };
 
-                desktop.MainWindow.Show();
-            }
+            // Afficher la fenêtre en mode modal sans parent (car desktop.MainWindow pas encore créée)
+            await warningWindow.ShowDialog(null);
 
-            base.OnFrameworkInitializationCompleted();
+            Environment.Exit(1);
+            return;
+        }
+
+        desktop.MainWindow = new MainWindow
+        {
+            DataContext = MainViewModel
+        };
+
+        desktop.MainWindow.Show();
+    }
+
+    base.OnFrameworkInitializationCompleted();
         }
 
         private void ConfigureServices(IServiceCollection services)
@@ -80,7 +105,7 @@ namespace EasySave
             // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<loggingService>(sp => 
+            services.AddSingleton<loggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
                 return new loggingService(config.LogType);
