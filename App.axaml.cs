@@ -79,9 +79,9 @@ namespace EasySave
 
                 string BackupSource = ModelBackup.SourcePath;
                 string BackupDestination = ModelBackup.DestinationPath;
-
+                
                 List<EasySave.Models.ModelBackup.Project> list = await ModelBackup.FetchProjectsAsync();
-;
+
                 char? separator = null;
 
                 if (projnum.Contains('-'))
@@ -103,47 +103,54 @@ namespace EasySave
                     }
                 }
 
-                if (argument == "save")
+                if (list != null && list.Count > 0)
                 {
-                    if (separator == '-')
+                    if (argument == "save")
                     {
-                        for (int i = x; i < y; i++)
+                        if (separator == '-')
                         {
-                            await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: false);
+                            for (int i = x; i < y; i++)
+                            {
+                                await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: false);
+                            }
+                        }
+                        else if (separator == ';')
+                        {
+                            var parts = projnum.Split(';');
+                            foreach (var part in parts)
+                            {
+                                if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
+                                {
+                                    await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: false);
+                                }
+                            }
                         }
                     }
-                    else if (separator == ';')
+                    else if (argument == "diff")
                     {
-                        var parts = projnum.Split(';');
-                        foreach (var part in parts)
+                        if (separator == '-')
                         {
-                            if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
+                            for (int i = x; i < y; i++)
                             {
-                                await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: false);
+                                await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: true);
+                            }
+                        }
+                        else if (separator == ';')
+                        {
+                            var parts = projnum.Split(';');
+                            foreach (var part in parts)
+                            {
+                                if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
+                                {
+                                    await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: true);
+                                }
                             }
                         }
                     }
                 }
-                else if (argument == "diff")
+                else
                 {
-                    if (separator == '-')
-                    {
-                        for (int i = x; i < y; i++)
-                        {
-                            await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: true);
-                        }
-                    }
-                    else if (separator == ';')
-                    {
-                        var parts = projnum.Split(';');
-                        foreach (var part in parts)
-                        {
-                            if (int.TryParse(part, out int idx) && idx >= 0 && idx < list.Count)
-                            {
-                                await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: true);
-                            }
-                        }
-                    }
+                    Console.WriteLine("No project found.");
                 }
 
                 // Récupération des chemins dynamiques depuis le backupViewModel
@@ -167,7 +174,7 @@ namespace EasySave
             // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<loggingService>(sp => 
+            services.AddSingleton<loggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
                 return new loggingService(config.LogType);
@@ -178,6 +185,10 @@ namespace EasySave
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<CryptosoftService>();
+            
+            // Enregistrement des modèles
+            services.AddSingleton<ModelBackup>();
+            services.AddSingleton<ModelConfig>();
         }
     }
 }
