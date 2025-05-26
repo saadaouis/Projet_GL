@@ -242,10 +242,10 @@ namespace EasySave
             // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<loggingService>(sp =>
+            services.AddSingleton<LoggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
-                return new loggingService(config.LogType);
+                return new LoggingService(config.LogType);
             }); // Enregistrement du Logger avec le type de log depuis la config
 
             // Enregistrement des ViewModels

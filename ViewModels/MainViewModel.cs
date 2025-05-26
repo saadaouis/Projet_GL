@@ -3,14 +3,13 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using CryptoSoftService;
 using EasySave.Models;
+using EasySave.Services.Logging;
 using EasySave.Services.Translation;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
-using EasySave.Services.Logging;
 
 namespace EasySave.ViewModels
 {
@@ -119,7 +118,7 @@ namespace EasySave.ViewModels
                 await this.translationService.SetLanguageAsync(languageToSet);
                 Console.WriteLine("Testing translation: " + this.translationService.GetTranslation("menu.settings.autosave"));
 
-                var logger = App.ServiceProvider.GetRequiredService<loggingService>();
+                var logger = App.ServiceProvider.GetRequiredService<LoggingService>();
                 logger.Log(new Dictionary<string, string> { { "message", "MainViewModel: Initialized" } });
 
                 this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;

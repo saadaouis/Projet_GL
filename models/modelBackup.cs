@@ -29,7 +29,7 @@ namespace EasySave.Models
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
 
-        private readonly loggingService logger;
+        private readonly LoggingService logger;
 
         private float totalEncryptTime;
 
@@ -44,7 +44,7 @@ namespace EasySave.Models
             this.DestinationPath = destinationPath;
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
-            this.logger = App.ServiceProvider.GetRequiredService<loggingService>();
+            this.logger = App.ServiceProvider.GetRequiredService<LoggingService>();
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace EasySave.Models
             this.DestinationPath = string.Empty;
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
-            this.logger = App.ServiceProvider.GetRequiredService<loggingService>();
+            this.logger = App.ServiceProvider.GetRequiredService<LoggingService>();
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
