@@ -2,19 +2,21 @@
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
+using System;
+using System.Collections.Generic;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Microsoft.Extensions.DependencyInjection;
+using CryptoSoftService;
 using EasySave.Models;
+using EasySave.Services.Logging; // Pour Logger
+using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
-using CryptoSoftService;
-using System;
-using EasySave.Services.Logging; // Pour Logger
-using System.Collections.Generic;
-using EasySave.Models; // Pour ModelConfig
+using System.Runtime.InteropServices;
+
 namespace EasySave
 {
     /// <summary>
@@ -27,7 +29,8 @@ namespace EasySave
             return App.ServiceProvider.GetRequiredService<T>();
         }
     }
-  
+
+    /// <summary>
     /// Classe principale de l'application.
     /// </summary>
     public partial class App : Application
@@ -36,7 +39,7 @@ namespace EasySave
         /// Global access to the service provider
         /// </summary>
         public static IServiceProvider ServiceProvider { get; private set; }
-        
+
         public MainViewModel MainViewModel { get; private set; }
         public ModelBackup ModelBackup { get; private set; }
         public ModelConfig ModelConfig { get; private set; }
@@ -53,13 +56,12 @@ namespace EasySave
 
         public override async void OnFrameworkInitializationCompleted()
         {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                // Configuration du container d'injection de dépendances
-                var services = new ServiceCollection();
-                ConfigureServices(services);
-                var serviceProvider = services.BuildServiceProvider();
-                ServiceProvider = serviceProvider;  // Store the service provider
+           if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        var serviceProvider = services.BuildServiceProvider();
+        ServiceProvider = serviceProvider;
 
                 // Récupération et initialisation du MainViewModel via DI
                 MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
@@ -91,7 +93,6 @@ namespace EasySave
 
                 char? separator = null;
                 string[] parts = Array.Empty<string>();
-
 
                 if (!string.IsNullOrEmpty(projnum))
                 {
@@ -186,11 +187,54 @@ namespace EasySave
                 {
                     DataContext = MainViewModel
                 };
+        var forbiddenAppManager = new ForbiddenAppManager();
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            forbiddenAppManager.AddForbiddenProcess("Calculator");
+        }
+        else
+        {
+            forbiddenAppManager.AddForbiddenProcess("notepad");
+            forbiddenAppManager.AddForbiddenProcess("calc");
+        }
 
-                desktop.MainWindow.Show();
-            }
+        if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
+        {
+            // Console visible uniquement si ton projet est en mode Console Application
+            Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
 
-            base.OnFrameworkInitializationCompleted();
+            // Créer une fenêtre temporaire pour afficher l'alerte
+            var warningWindow = new Window
+            {
+                Title = "Processus interdit détecté",
+                Width = 400,
+                Height = 150,
+                Content = new TextBlock
+                {
+                    Text = $"L'application interdite '{runningApp}' est en cours d'exécution.\nVeuillez la fermer avant de continuer.",
+                    Margin = new Thickness(20),
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                }
+            };
+
+            // Afficher la fenêtre en mode modal sans parent (car desktop.MainWindow pas encore créée)
+            await warningWindow.ShowDialog(null);
+
+            Environment.Exit(1);
+            return;
+        }
+
+        desktop.MainWindow = new MainWindow
+        {
+            DataContext = MainViewModel
+        };
+
+        desktop.MainWindow.Show();
+    }
+
+    base.OnFrameworkInitializationCompleted();
         }
 
         private void ConfigureServices(IServiceCollection services)

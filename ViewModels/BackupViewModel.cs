@@ -6,11 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services.Translation;
+using EasySave.Services.ProcessControl;
 
 namespace EasySave.ViewModels
 {
@@ -21,12 +21,16 @@ namespace EasySave.ViewModels
     {
         private readonly ModelBackup modelBackup;
         private readonly TranslationService translationService;
+        private readonly ForbiddenAppManager appManager;
+
         private bool isBackupInProgress;
         private double overallProgress;
         private List<ModelBackup.Project> availableProjects;
         private List<ModelBackup.Project> availableBackups;
         private string sourcePath;
         private string destinationPath;
+        private bool canStartBackup;
+        private string forbiddenAppName;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackupViewModel"/> class.
@@ -45,12 +49,27 @@ namespace EasySave.ViewModels
             this.availableBackups = new List<ModelBackup.Project>();
             this.SelectedProjects = new ObservableCollection<ModelBackup.Project>();
 
+            // Setup forbidden app manager and processes to block
+            this.appManager = new ForbiddenAppManager();
+            this.appManager.AddForbiddenProcess("calc");
+            this.appManager.AddForbiddenProcess("Calculator");
+            this.forbiddenAppName = "notepad"; // Exemple, tu peux changer selon besoin
+
+            this.canStartBackup = CheckIfCanStartBackup();
+
+            if (this.appManager.IsAnyForbiddenAppRunning(out string appName))
+            {
+                this.canStartBackup = false;
+                this.forbiddenAppName = appName;
+                Console.WriteLine($"Erreur : \"{appName}\" est lancé. Sauvegarde désactivée.");
+            }
+
             // Initialize commands
-            this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync());
-            this.RefreshBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync("destination"));
-            this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await this.RefreshAll());
-            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync());
-            this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync(true));
+            this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await LoadProjectsAsync());
+            this.RefreshBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await LoadProjectsAsync("destination"));
+            this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await RefreshAll());
+            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await SaveSelectedProjectsAsync());
+            this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await SaveSelectedProjectsAsync(true));
         }
 
         /// <summary>
@@ -64,7 +83,7 @@ namespace EasySave.ViewModels
         public bool IsBackupInProgress
         {
             get => this.isBackupInProgress;
-            set => this.SetProperty(ref this.isBackupInProgress, value);
+            set => SetProperty(ref this.isBackupInProgress, value);
         }
 
         /// <summary>
@@ -73,7 +92,7 @@ namespace EasySave.ViewModels
         public double OverallProgress
         {
             get => this.overallProgress;
-            set => this.SetProperty(ref this.overallProgress, value);
+            set => SetProperty(ref this.overallProgress, value);
         }
 
         /// <summary>
@@ -84,7 +103,7 @@ namespace EasySave.ViewModels
             get => this.sourcePath;
             set
             {
-                if (this.SetProperty(ref this.sourcePath, value))
+                if (SetProperty(ref this.sourcePath, value))
                 {
                     this.modelBackup.SourcePath = value;
                 }
@@ -99,13 +118,9 @@ namespace EasySave.ViewModels
             get => this.destinationPath;
             set
             {
-                Console.WriteLine($"Setting DestinationPath: {value}");
-                if (this.SetProperty(ref this.destinationPath, value))
+                if (SetProperty(ref this.destinationPath, value))
                 {
-                    this.destinationPath = value;
-                    Console.WriteLine($"DestinationPath set to: {this.destinationPath}");
                     this.modelBackup.DestinationPath = value;
-                    Console.WriteLine($"ModelBackup DestinationPath set to: {this.modelBackup.DestinationPath}");
                 }
             }
         }
@@ -116,7 +131,7 @@ namespace EasySave.ViewModels
         public List<ModelBackup.Project> AvailableProjects
         {
             get => this.availableProjects;
-            set => this.SetProperty(ref this.availableProjects, value);
+            set => SetProperty(ref this.availableProjects, value);
         }
 
         /// <summary>
@@ -125,7 +140,7 @@ namespace EasySave.ViewModels
         public List<ModelBackup.Project> AvailableBackups
         {
             get => this.availableBackups;
-            set => this.SetProperty(ref this.availableBackups, value);
+            set => SetProperty(ref this.availableBackups, value);
         }
 
         /// <summary>
@@ -171,7 +186,7 @@ namespace EasySave.ViewModels
         public async Task LoadProjectsAsync(string directory = "source")
         {
             try
-            {   
+            {
                 if (directory == "source")
                 {
                     this.AvailableProjects = await this.modelBackup.FetchProjectsAsync();
@@ -198,16 +213,23 @@ namespace EasySave.ViewModels
             {
                 this.SelectedProjects.Add(item);
             }
-            
+
             Console.WriteLine($"Selected projects updated. Count: {this.SelectedProjects.Count}");
         }
 
         /// <summary>
         /// Saves the currently selected projects.
         /// </summary>
+        /// <param name="isDifferential">If true, performs a differential backup.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task SaveSelectedProjectsAsync(bool isDifferential = false)
         {
+            if (!this.canStartBackup)
+            {
+                Console.WriteLine($"Impossible de démarrer la sauvegarde, le processus \"{this.forbiddenAppName}\" est actif.");
+                return;
+            }
+
             if (this.SelectedProjects == null || this.SelectedProjects.Count == 0)
             {
                 Console.WriteLine("No projects selected to save.");
@@ -215,38 +237,35 @@ namespace EasySave.ViewModels
             }
 
             this.IsBackupInProgress = true;
-            this.OverallProgress = 0; // Reset overall progress
+            this.OverallProgress = 0;
             Console.WriteLine($"Starting backup process for {this.SelectedProjects.Count} project(s).");
-            
+
             int totalProjectsToBackup = this.SelectedProjects.Count;
             int projectsBackedUpSoFar = 0;
             bool allSucceeded = true;
 
             try
             {
-                // Basic check, might need refinement based on overall project limit logic
-                // This check should ideally be done before setting IsBackupInProgress to true
-                if (this.AvailableProjects.Count + this.SelectedProjects.Count > 5 && !this.SelectedProjects.All(sp => this.AvailableProjects.Any(ap => ap.Name == sp.Name)))
+                // Vérification simple : ne pas dépasser 5 projets
+                if (this.AvailableProjects.Count + this.SelectedProjects.Count > 5 &&
+                    !this.SelectedProjects.All(sp => this.AvailableProjects.Any(ap => ap.Name == sp.Name)))
                 {
                     Console.WriteLine("Adding these projects would exceed the maximum number of projects.");
-
-                    // Potentially provide more specific feedback to the user
-                    this.IsBackupInProgress = false; // Ensure progress bar is hidden
+                    this.IsBackupInProgress = false;
                     return;
                 }
 
                 foreach (var project in this.SelectedProjects)
                 {
                     Console.WriteLine($"Starting save for project: {project.Name}");
-                    
-                    var singleProjectProgressReporter = new Progress<double>(currentProjectProgress =>
+
+                    var progressReporter = new Progress<double>(currentProjectProgress =>
                     {
-                        // currentProjectProgress is 0-100 for the individual project
                         this.OverallProgress = ((projectsBackedUpSoFar * 100.0) + currentProjectProgress) / totalProjectsToBackup;
                         Console.WriteLine($"Overall Progress: {this.OverallProgress:F2}%, Current Project ({project.Name}): {currentProjectProgress:F2}%");
                     });
 
-                    bool success = await this.modelBackup.SaveProjectAsync(project.Name, isDifferential, singleProjectProgressReporter);
+                    bool success = await this.modelBackup.SaveProjectAsync(project.Name, isDifferential, progressReporter);
                     if (success)
                     {
                         projectsBackedUpSoFar++;
@@ -256,45 +275,39 @@ namespace EasySave.ViewModels
                     {
                         allSucceeded = false;
                         Console.WriteLine($"Project {project.Name} failed to save.");
-
-                        // Optionally, decide if you want to stop on first failure or continue
-                        // break; // Uncomment to stop on first failure
+                        // Décider si on continue ou pas : ici on continue
                     }
 
-                    // Ensure overall progress reflects full completion of this project if successful
                     this.OverallProgress = (projectsBackedUpSoFar * 100.0) / totalProjectsToBackup;
                 }
-                
+
                 Console.WriteLine($"Backup process finished. {projectsBackedUpSoFar} out of {totalProjectsToBackup} projects processed.");
+
                 if (allSucceeded)
                 {
-                    this.OverallProgress = 100; // Ensure it hits 100% if all successful
+                    this.OverallProgress = 100;
                 }
 
-                await this.LoadProjectsAsync("destination"); // Refresh the project list
+                await LoadProjectsAsync("destination");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during batch backup: {ex.Message}");
-                allSucceeded = false; // Mark as failed
-
-                // OverallProgress will be at its last reported state or could be set to 0 or a specific error indication
+                allSucceeded = false;
             }
             finally
             {
                 this.IsBackupInProgress = false;
-                if (!allSucceeded && totalProjectsToBackup > 0) 
+
+                if (!allSucceeded && totalProjectsToBackup > 0)
                 {
-                    // If not all succeeded, ensure progress isn't stuck at 100%
-                    // It will be at the progress of the last successfully completed segment + partial of failed one.
-                    // Or, explicitly set to 0 or an error value if preferred.
-                    // For now, it will reflect the actual progress made before failure.
+                    // Progress remains at last progress
                 }
-                else if (totalProjectsToBackup == 0) 
+                else if (totalProjectsToBackup == 0)
                 {
-                  this.OverallProgress = 0; // No projects, no progress.
+                    this.OverallProgress = 0;
                 }
-                
+
                 Console.WriteLine($"Final Overall Progress: {this.OverallProgress:F2}%");
             }
         }
@@ -305,35 +318,27 @@ namespace EasySave.ViewModels
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task RefreshAll()
         {
-            await this.LoadProjectsAsync();
-            await this.LoadProjectsAsync("destination");
+            await LoadProjectsAsync();
+            await LoadProjectsAsync("destination");
         }
 
-        /* private async Task DownloadSelectedProjectAsync()
-        // {
-        //     if (this.SelectedProject == null)
-        //     {
-        //         this.logger.Log("No project selected", "warning");
-        //         return;
-        //     }
-
-        //     try
-        //     {
-        //         this.IsBackupInProgress = true;
-        //         this.logger.Log("Starting backup download", "info");
-
-        //         await this.modelBackup.DownloadBackupAsync(this.SelectedProject);
-        //         this.logger.Log($"Backup downloaded successfully: {this.SelectedProject.Name}", "info");
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         this.logger.Log($"Error during backup download: {ex.Message}", "error");
-        //         throw;
-        //     }
-        //     finally
-        //     {
-        //         this.IsBackupInProgress = false;
-        //     }
-        // }*/
+        /// <summary>
+        /// Checks if the backup can start by verifying forbidden apps are not running.
+        /// </summary>
+        /// <returns>True if backup can start, false otherwise.</returns>
+        private bool CheckIfCanStartBackup()
+        {
+            var forbiddenProcesses = new[] { "notepad", "calc", "Calculator" };
+            foreach (var processName in forbiddenProcesses)
+            {
+                var processes = System.Diagnostics.Process.GetProcessesByName(processName);
+                if (processes.Length > 0)
+                {
+                    this.forbiddenAppName = processName;
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

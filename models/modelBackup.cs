@@ -13,6 +13,9 @@ using CryptoSoftService;
 using EasySave.Services.Logging;
 using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
+using EasySave.Services.ProcessControl;
+
+
 
 namespace EasySave.Models
 {
@@ -103,7 +106,7 @@ namespace EasySave.Models
                         var project = new Project
                         {
                             Name = dir.Name,
-                            LastBackup = dir.LastWriteTime,
+                            LastBackup = dir.LastWriteTime,                                                                                                                                            
                             Size = Math.Round(sizeInMB, 2),
                             Path = dir.FullName,
                         };
@@ -144,26 +147,26 @@ namespace EasySave.Models
             return await Task.FromResult(this.backupStates[projectName]);
         }
 
-/*         /// <summary>
-        /// Toggles auto-save for a project.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-        /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
-        public bool ToggleAutoSave(string projectName, int intervalSeconds)
-        {
-            if (this.autoSaveTasks.ContainsKey(projectName))
-            {
-                this.StopAutoSave(projectName);
-                return false;
-            }
-            else
-            {
-                var project = new Project { Name = projectName };
-                this.StartAutoSave(new List<Project> { project }, intervalSeconds);
-                return true;
-            }
-        } */
+        /*         /// <summary>
+                /// Toggles auto-save for a project.
+                /// </summary>
+                /// <param name="projectName">The name of the project.</param>
+                /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
+                /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
+                public bool ToggleAutoSave(string projectName, int intervalSeconds)
+                {
+                    if (this.autoSaveTasks.ContainsKey(projectName))
+                    {
+                        this.StopAutoSave(projectName);
+                        return false;
+                    }
+                    else
+                    {
+                        var project = new Project { Name = projectName };
+                        this.StartAutoSave(new List<Project> { project }, intervalSeconds);
+                        return true;
+                    }
+                } */
 
         /// <summary>
         /// Saves a project with the specified version number.
@@ -172,9 +175,37 @@ namespace EasySave.Models
         /// <param name="isDifferential">Whether this is a differential backup.</param>
         /// <param name="progressReporter">Callback for reporting progress updates (0-100).</param>
         /// <returns>True if the save was successful, false otherwise.</returns>
+        /// 
+        private bool IsBlockedProcessRunning()
+        {
+            string[] blockedProcesses = { "notepad", "calc", "calculator" };
+            return Process.GetProcesses().Any(p =>
+            {
+                try { return blockedProcesses.Contains(p.ProcessName.ToLower()); }
+                catch { return false; }
+            });
+        }
+
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
             var stopwatch = Stopwatch.StartNew();
+            var forbiddenAppManager = new ForbiddenAppManager();
+             forbiddenAppManager.AddForbiddenProcess("notepad");
+            forbiddenAppManager.AddForbiddenProcess("calc");
+
+            // Vérifie si un processus bloquant est en cours d'exécution
+            if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
+            {
+                // Console visible uniquement si ton projet est en mode Console Application
+                Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
+
+                // Créer une fenêtre temporaire pour afficher l'alerte
+               
+
+                Environment.Exit(1);
+                return false;
+            }
+
             try
             {
                 // Log the start of the backup
