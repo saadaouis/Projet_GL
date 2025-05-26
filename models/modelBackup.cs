@@ -11,11 +11,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using CryptoSoftService;
 using EasySave.Services.Logging;
+using EasySave.Services.ProcessControl;
 using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
-using EasySave.Services.ProcessControl;
-
-
+using System.Runtime.InteropServices;
 
 namespace EasySave.Models
 {
@@ -83,6 +82,7 @@ namespace EasySave.Models
             {
                 path = this.SourcePath;
             }
+
             Console.WriteLine(path);
 
             var projects = new List<Project>();
@@ -181,26 +181,44 @@ namespace EasySave.Models
             string[] blockedProcesses = { "notepad", "calc", "calculator" };
             return Process.GetProcesses().Any(p =>
             {
-                try { return blockedProcesses.Contains(p.ProcessName.ToLower()); }
-                catch { return false; }
+                try 
+                {
+                    return blockedProcesses.Contains(p.ProcessName.ToLower()); 
+                }
+                catch 
+                {
+                    return false; 
+                }
             });
         }
 
+        /// <summary>
+        /// Saves a project with the specified version number.
+        /// </summary>
+        /// <param name="projectName">The name of the project.</param>
+        /// <param name="isDifferential">Whether this is a differential backup.</param>
+        /// <param name="progressReporter">Callback for reporting progress updates (0-100).</param>
+        /// <returns>True if the save was successful, false otherwise.</returns>
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
             var stopwatch = Stopwatch.StartNew();
             var forbiddenAppManager = new ForbiddenAppManager();
-             forbiddenAppManager.AddForbiddenProcess("notepad");
-            forbiddenAppManager.AddForbiddenProcess("calc");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                forbiddenAppManager.AddForbiddenProcess("Calculator");
+            }
+            else
+            {
+                forbiddenAppManager.AddForbiddenProcess("notepad");
+                forbiddenAppManager.AddForbiddenProcess("calc");
+            }
 
-            // Vérifie si un processus bloquant est en cours d'exécution
+            // Vï¿½rifie si un processus bloquant est en cours d'exï¿½cution
             if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
             {
                 // Console visible uniquement si ton projet est en mode Console Application
-                Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
+                Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exï¿½cution. Fermeture de l'application.");
 
-                // Créer une fenêtre temporaire pour afficher l'alerte
-               
 
                 Environment.Exit(1);
                 return false;
@@ -217,7 +235,7 @@ namespace EasySave.Models
                     { "FileSize", "0" },
                     { "FileTransferTime", "0" },
                     { "encryptTime", "0" },
-                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") },
                 };
                 this.logger.Log(startLog);
 
@@ -334,7 +352,7 @@ namespace EasySave.Models
                     }
 
                     Console.WriteLine($"Found {files.Length} files to encrypt");
-                    totalEncryptTime = 0; // Reset total encryption time
+                    this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
                         if (File.Exists(file))
@@ -344,7 +362,7 @@ namespace EasySave.Models
                                 var encryptTime = Stopwatch.StartNew();
                                 var encrypted = await this.cryptosoftService.Encrypt(file);
                                 encryptTime.Stop();
-                                totalEncryptTime += (float)encryptTime.Elapsed.TotalSeconds;
+                                this.totalEncryptTime += (float)encryptTime.Elapsed.TotalSeconds;
                                 Console.WriteLine($"Encrypted {file}: {encrypted} in {encryptTime.Elapsed.TotalSeconds:F3} seconds");
                             }
                             catch (Exception ex)
@@ -357,7 +375,8 @@ namespace EasySave.Models
                             Console.WriteLine($"File {file} does not exist");
                         }
                     }
-                    Console.WriteLine($"Encryption complete. Total encryption time: {totalEncryptTime:F3} seconds");
+
+                    Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
                 }
 
                 state.IsComplete = true;
@@ -384,8 +403,8 @@ namespace EasySave.Models
                     { "FileTarget", Path.Combine(this.DestinationPath, projectName) },
                     { "FileSize", state.TotalSize.ToString() },
                     { "FileTransferTime", stopwatch.Elapsed.TotalSeconds.ToString("F3") },
-                    { "encryptTime", totalEncryptTime.ToString("F3") },
-                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") }
+                    { "encryptTime", this.totalEncryptTime.ToString("F3") },
+                    { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") },
                 };
                 this.logger.Log(endLog);
 
@@ -422,7 +441,7 @@ namespace EasySave.Models
                     { "FileTransferTime", stopwatch.Elapsed.TotalSeconds.ToString("F3") },
                     { "encryptTime", "0" },
                     { "time", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") },
-                    { "error", ex.Message }
+                    { "error", ex.Message },
                 };
                 this.logger.Log(errorLog);
 
