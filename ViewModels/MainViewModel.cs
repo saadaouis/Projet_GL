@@ -25,8 +25,6 @@ namespace EasySave.ViewModels
         private bool isInitialized;
         private ViewModelBase currentView;
 
-        public BackupViewModel BackupViewModel => this.backupViewModel;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
@@ -70,6 +68,11 @@ namespace EasySave.ViewModels
             get => this.isInitialized;
             set => this.SetProperty(ref this.isInitialized, value);
         }
+
+        /// <summary>
+        /// Gets the backup view model.
+        /// </summary>
+        public BackupViewModel BackupViewModel => this.backupViewModel;
 
         /// <summary>
         /// Gets or sets the current view.
@@ -225,6 +228,7 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Generic relay command class that implements the ICommand interface and supports parameters.
         /// </summary>
+        /// <typeparam name="T">The type of the parameter.</typeparam>
         public class RelayCommand<T> : ICommand
         {
             private readonly Action<T> execute;
