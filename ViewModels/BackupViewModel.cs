@@ -9,8 +9,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using EasySave.Models;
-using EasySave.Services.Translation;
 using EasySave.Services.ProcessControl;
+using EasySave.Services.Translation;
 
 namespace EasySave.ViewModels
 {
@@ -55,21 +55,21 @@ namespace EasySave.ViewModels
             this.appManager.AddForbiddenProcess("Calculator");
             this.forbiddenAppName = "notepad"; // Exemple, tu peux changer selon besoin
 
-            this.canStartBackup = CheckIfCanStartBackup();
+            this.canStartBackup = this.CheckIfCanStartBackup();
 
             if (this.appManager.IsAnyForbiddenAppRunning(out string appName))
             {
                 this.canStartBackup = false;
                 this.forbiddenAppName = appName;
-                Console.WriteLine($"Erreur : \"{appName}\" est lancé. Sauvegarde désactivée.");
+                Console.WriteLine($"Erreur : \"{appName}\" est lancï¿½. Sauvegarde dï¿½sactivï¿½e.");
             }
 
             // Initialize commands
-            this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await LoadProjectsAsync());
-            this.RefreshBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await LoadProjectsAsync("destination"));
-            this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await RefreshAll());
-            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await SaveSelectedProjectsAsync());
-            this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await SaveSelectedProjectsAsync(true));
+            this.RefreshProjectsCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync());
+            this.RefreshBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.LoadProjectsAsync("destination"));
+            this.RefreshAllCommand = new MainViewModel.AsyncRelayCommand(async () => await this.RefreshAll());
+            this.SaveSelectedProjectCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync());
+            this.DifferentialBackupCommand = new MainViewModel.AsyncRelayCommand(async () => await this.SaveSelectedProjectsAsync(true));
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace EasySave.ViewModels
         public bool IsBackupInProgress
         {
             get => this.isBackupInProgress;
-            set => SetProperty(ref this.isBackupInProgress, value);
+            set => this.SetProperty(ref this.isBackupInProgress, value);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace EasySave.ViewModels
         public double OverallProgress
         {
             get => this.overallProgress;
-            set => SetProperty(ref this.overallProgress, value);
+            set => this.SetProperty(ref this.overallProgress, value);
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace EasySave.ViewModels
             get => this.sourcePath;
             set
             {
-                if (SetProperty(ref this.sourcePath, value))
+                if (this.SetProperty(ref this.sourcePath, value))
                 {
                     this.modelBackup.SourcePath = value;
                 }
@@ -118,7 +118,7 @@ namespace EasySave.ViewModels
             get => this.destinationPath;
             set
             {
-                if (SetProperty(ref this.destinationPath, value))
+                if (this.SetProperty(ref this.destinationPath, value))
                 {
                     this.modelBackup.DestinationPath = value;
                 }
@@ -131,7 +131,7 @@ namespace EasySave.ViewModels
         public List<ModelBackup.Project> AvailableProjects
         {
             get => this.availableProjects;
-            set => SetProperty(ref this.availableProjects, value);
+            set => this.SetProperty(ref this.availableProjects, value);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace EasySave.ViewModels
         public List<ModelBackup.Project> AvailableBackups
         {
             get => this.availableBackups;
-            set => SetProperty(ref this.availableBackups, value);
+            set => this.SetProperty(ref this.availableBackups, value);
         }
 
         /// <summary>
@@ -226,7 +226,7 @@ namespace EasySave.ViewModels
         {
             if (!this.canStartBackup)
             {
-                Console.WriteLine($"Impossible de démarrer la sauvegarde, le processus \"{this.forbiddenAppName}\" est actif.");
+                Console.WriteLine($"Impossible de dï¿½marrer la sauvegarde, le processus \"{this.forbiddenAppName}\" est actif.");
                 return;
             }
 
@@ -246,7 +246,7 @@ namespace EasySave.ViewModels
 
             try
             {
-                // Vérification simple : ne pas dépasser 5 projets
+                // Vï¿½rification simple : ne pas dï¿½passer 5 projets
                 if (this.AvailableProjects.Count + this.SelectedProjects.Count > 5 &&
                     !this.SelectedProjects.All(sp => this.AvailableProjects.Any(ap => ap.Name == sp.Name)))
                 {
@@ -275,7 +275,8 @@ namespace EasySave.ViewModels
                     {
                         allSucceeded = false;
                         Console.WriteLine($"Project {project.Name} failed to save.");
-                        // Décider si on continue ou pas : ici on continue
+
+                        // Dï¿½cider si on continue ou pas : ici on continue
                     }
 
                     this.OverallProgress = (projectsBackedUpSoFar * 100.0) / totalProjectsToBackup;
@@ -288,7 +289,7 @@ namespace EasySave.ViewModels
                     this.OverallProgress = 100;
                 }
 
-                await LoadProjectsAsync("destination");
+                await this.LoadProjectsAsync("destination");
             }
             catch (Exception ex)
             {
@@ -318,8 +319,8 @@ namespace EasySave.ViewModels
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task RefreshAll()
         {
-            await LoadProjectsAsync();
-            await LoadProjectsAsync("destination");
+            await this.LoadProjectsAsync();
+            await this.LoadProjectsAsync("destination");
         }
 
         /// <summary>
@@ -338,6 +339,7 @@ namespace EasySave.ViewModels
                     return false;
                 }
             }
+            
             return true;
         }
     }
