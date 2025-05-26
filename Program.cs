@@ -13,9 +13,15 @@ namespace EasySave
     /// </summary>
     internal class Program
     {
+        /// <summary>
+        /// Gets the launch argument.
+        /// </summary>
         public static string? LaunchArgument { get; private set; }
-        public static string? ProjectArgument { get; private set; }
 
+        /// <summary>
+        /// Gets the project argument.
+        /// </summary>
+        public static string? ProjectArgument { get; private set; }
 
         /// <summary>
         /// Main method.
