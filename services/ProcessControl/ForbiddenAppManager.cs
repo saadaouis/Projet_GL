@@ -105,7 +105,7 @@ namespace EasySave.Services.ProcessControl
             }
 
             // No forbidden process found running
-            runningApp = null;
+            runningApp = string.Empty;
             return false;
         }
     }
