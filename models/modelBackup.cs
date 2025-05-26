@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using CryptoSoftService;
@@ -14,7 +15,6 @@ using EasySave.Services.Logging;
 using EasySave.Services.ProcessControl;
 using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.InteropServices;
 
 namespace EasySave.Models
 {
@@ -29,9 +29,9 @@ namespace EasySave.Models
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
 
-        private float totalEncryptTime;
-
         private readonly loggingService logger;
+
+        private float totalEncryptTime;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelBackup"/> class.
@@ -147,52 +147,7 @@ namespace EasySave.Models
             return await Task.FromResult(this.backupStates[projectName]);
         }
 
-        /*         /// <summary>
-                /// Toggles auto-save for a project.
-                /// </summary>
-                /// <param name="projectName">The name of the project.</param>
-                /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
-                /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
-                public bool ToggleAutoSave(string projectName, int intervalSeconds)
-                {
-                    if (this.autoSaveTasks.ContainsKey(projectName))
-                    {
-                        this.StopAutoSave(projectName);
-                        return false;
-                    }
-                    else
-                    {
-                        var project = new Project { Name = projectName };
-                        this.StartAutoSave(new List<Project> { project }, intervalSeconds);
-                        return true;
-                    }
-                } */
-
-        /// <summary>
-        /// Saves a project with the specified version number.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <param name="isDifferential">Whether this is a differential backup.</param>
-        /// <param name="progressReporter">Callback for reporting progress updates (0-100).</param>
-        /// <returns>True if the save was successful, false otherwise.</returns>
-        /// 
-        private bool IsBlockedProcessRunning()
-        {
-            string[] blockedProcesses = { "notepad", "calc", "calculator" };
-            return Process.GetProcesses().Any(p =>
-            {
-                try 
-                {
-                    return blockedProcesses.Contains(p.ProcessName.ToLower()); 
-                }
-                catch 
-                {
-                    return false; 
-                }
-            });
-        }
-
-        /// <summary>
+         /// <summary>
         /// Saves a project with the specified version number.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -218,7 +173,6 @@ namespace EasySave.Models
             {
                 // Console visible uniquement si ton projet est en mode Console Application
                 Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'ex�cution. Fermeture de l'application.");
-
 
                 Environment.Exit(1);
                 return false;
@@ -449,6 +403,27 @@ namespace EasySave.Models
                 return false;
             }
         }
+
+        /*         /// <summary>
+                /// Toggles auto-save for a project.
+                /// </summary>
+                /// <param name="projectName">The name of the project.</param>
+                /// <param name="intervalSeconds">The auto-save interval in seconds.</param>
+                /// <returns>True if auto-save was enabled, false if it was disabled.</returns>
+                public bool ToggleAutoSave(string projectName, int intervalSeconds)
+                {
+                    if (this.autoSaveTasks.ContainsKey(projectName))
+                    {
+                        this.StopAutoSave(projectName);
+                        return false;
+                    }
+                    else
+                    {
+                        var project = new Project { Name = projectName };
+                        this.StartAutoSave(new List<Project> { project }, intervalSeconds);
+                        return true;
+                    }
+                } */
 
        /*  /// <summary>
         /// Starts auto-save for a project.
@@ -739,6 +714,30 @@ namespace EasySave.Models
             {
                 return (latestMajor + 1, 0);
             }
+        }
+
+        /// <summary>
+        /// Saves a project with the specified version number.
+        /// </summary>
+        /// <param name="projectName">The name of the project.</param>
+        /// <param name="isDifferential">Whether this is a differential backup.</param>
+        /// <param name="progressReporter">Callback for reporting progress updates (0-100).</param>
+        /// <returns>True if the save was successful, false otherwise.</returns>
+        /// 
+        private bool IsBlockedProcessRunning()
+        {
+            string[] blockedProcesses = { "notepad", "calc", "calculator" };
+            return Process.GetProcesses().Any(p =>
+            {
+                try 
+                {
+                    return blockedProcesses.Contains(p.ProcessName.ToLower()); 
+                }
+                catch 
+                {
+                    return false; 
+                }
+            });
         }
 
         /// <summary>
