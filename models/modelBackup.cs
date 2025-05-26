@@ -80,6 +80,7 @@ namespace EasySave.Models
             {
                 path = this.SourcePath;
             }
+            Console.WriteLine(path);
 
             var projects = new List<Project>();
 

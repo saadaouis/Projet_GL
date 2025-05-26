@@ -7,10 +7,40 @@
              x:Class="EasySave.Views.BackupView"
              x:DataType="vm:BackupViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#FFB6C1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#FF69B4"/>
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="#FFF0F5"/>
+            <Setter Property="CornerRadius" Value="15"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#FFB6C1"/>
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Margin" Value="0,5"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
             <TextBlock Text="{Binding T[backup.title]}" 
-                      FontSize="24"/>
+                      FontSize="28"
+                      FontWeight="Bold"
+                      Foreground="#FF69B4"/>
             <Button Content="{Binding T[logs.refresh]}" 
                     Command="{Binding RefreshAllCommand}"/>
         </StackPanel>
@@ -20,25 +50,31 @@
             <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,10,0">
                 <TextBlock Grid.Row="0" 
                           Text="{Binding T[backup.source]}" 
-                          FontSize="18"
-                          Margin="0,0,0,10"/>
+                          FontSize="20"
+                          FontWeight="SemiBold"
+                          Foreground="#FF69B4"
+                          Margin="0,0,0,15"/>
                 <ListBox Grid.Row="1" 
                          x:Name="ProjectsListBox"
                          ItemsSource="{Binding AvailableProjects}"
                          SelectionMode="Multiple"
                          SelectionChanged="ProjectsListBox_SelectionChanged"
                          VerticalAlignment="Stretch">
-                         <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="chartreuse" />
-                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
-                            </StackPanel>
+                            <Border Background="White" 
+                                    CornerRadius="10" 
+                                    Padding="15"
+                                    Margin="0,5">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                             FontWeight="Bold" 
+                                             Foreground="#FF69B4" 
+                                             FontSize="16"/>
+                                    <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"
+                                             Foreground="#666"/>
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -48,45 +84,58 @@
             <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,0,10,0">
                 <TextBlock Grid.Row="0" 
                           Text="{Binding T[backup.destination]}" 
-                          FontSize="18"
-                          Margin="0,0,0,10"/>
+                          FontSize="20"
+                          FontWeight="SemiBold"
+                          Foreground="#FF69B4"
+                          Margin="0,0,0,15"/>
                 <ListBox Grid.Row="1" 
                          x:Name="BackupsListBox"
                          ItemsSource="{Binding AvailableBackups}"
                          VerticalAlignment="Stretch"
                          SelectionMode="Single">
-                         <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="gray" />
-                                <TextBlock Text="{Binding Path}"/>
-                                <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"/>
-                                <TextBlock Text="{Binding LastBackup, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"/>
-                            </StackPanel>
+                            <Border Background="White" 
+                                    CornerRadius="10" 
+                                    Padding="15"
+                                    Margin="0,5">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                             FontWeight="Bold" 
+                                             Foreground="#FF69B4"
+                                             FontSize="16"/>
+                                    <TextBlock Text="{Binding Path}"
+                                             Foreground="#666"/>
+                                    <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"
+                                             Foreground="#666"/>
+                                    <TextBlock Text="{Binding LastBackup, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"
+                                             Foreground="#666"/>
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
         </Grid>
 
-        <!-- Action Buttons and Progress Bar in a single Grid row for better alignment -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-            <ProgressBar Grid.Column="0"
-                         IsVisible="{Binding IsBackupInProgress}"
-                         Value="{Binding OverallProgress}"
-                         Maximum="100" 
-                         Height="20"
-                         VerticalAlignment="Center"
-                         Margin="0,0,10,0"/> 
+        <!-- Action Buttons and Progress Bar -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
+            <Border Grid.Column="0"
+                    Background="#FFF0F5"
+                    CornerRadius="10"
+                    Padding="10"
+                    IsVisible="{Binding IsBackupInProgress}">
+                <ProgressBar Value="{Binding OverallProgress}"
+                           Maximum="100" 
+                           Height="20"
+                           VerticalAlignment="Center"
+                           Background="Transparent"
+                           Foreground="#FF69B4"/>
+            </Border>
             <StackPanel Grid.Column="1" 
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
-                        Spacing="10">
+                        Spacing="15">
                 <Button Content="{Binding T[backup.save_project]}" 
                         Command="{Binding SaveSelectedProjectCommand}"
                         IsEnabled="{Binding !IsBackupInProgress}"/>
