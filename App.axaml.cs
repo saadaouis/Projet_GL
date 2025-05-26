@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using EasySave.ViewModels;
 using EasySave.Views;
 using CryptoSoftService;
-using System;
+using System;                                                                                                                                                  
 using EasySave.Services.Logging; // Pour Logger
 using EasySave.Models; // Pour ModelConfig
 using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
@@ -58,8 +58,8 @@ namespace EasySave
         await MainViewModel.InitializeAsync();
 
         var forbiddenAppManager = new ForbiddenAppManager();
-        forbiddenAppManager.AddForbiddenProcess("notepad");
-        forbiddenAppManager.AddForbiddenProcess("calc");
+      //  forbiddenAppManager.AddForbiddenProcess("notepad");
+       // forbiddenAppManager.AddForbiddenProcess("calc");
 
         if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
         {
