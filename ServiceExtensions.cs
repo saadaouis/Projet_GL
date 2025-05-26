@@ -1,4 +1,4 @@
-// <copyright file="App.axaml.cs" company="EasySave">
+// <copyright file="ServiceExtensions.cs" company="EasySave">
 // Copyright (c) EasySave. All rights reserved.
 // </copyright>
 
@@ -12,9 +12,15 @@ namespace EasySave
     /// </summary>
     public static class ServiceExtensions
     {
-        public static T GetService<T>() where T : class
+        /// <summary>
+        /// Gets the service.
+        /// </summary>
+        /// <typeparam name="T">The type of the service.</typeparam>
+        /// <returns>The service.</returns>
+        public static T GetService<T>() 
+        where T : class
         {
-            return App.ServiceProvider.GetRequiredService<T>();
+            return App.ServiceProvider!.GetRequiredService<T>();
         }
     }
 }
