@@ -15,6 +15,8 @@ using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
 using EasySave.Services.ProcessControl;
 
+
+
 namespace EasySave.Models
 {
     /// <summary>
@@ -104,7 +106,7 @@ namespace EasySave.Models
                         var project = new Project
                         {
                             Name = dir.Name,
-                            LastBackup = dir.LastWriteTime,
+                            LastBackup = dir.LastWriteTime,                                                                                                                                            
                             Size = Math.Round(sizeInMB, 2),
                             Path = dir.FullName,
                         };
@@ -187,12 +189,20 @@ namespace EasySave.Models
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
             var stopwatch = Stopwatch.StartNew();
-
+            var forbiddenAppManager = new ForbiddenAppManager();
+             forbiddenAppManager.AddForbiddenProcess("notepad");
+            forbiddenAppManager.AddForbiddenProcess("calc");
 
             // Vérifie si un processus bloquant est en cours d'exécution
-            if (IsBlockedProcessRunning())
+            if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
             {
-                Console.WriteLine("Sauvegarde annulée : un processus interdit (Notepad ou Calculatrice) est en cours d'exécution.");
+                // Console visible uniquement si ton projet est en mode Console Application
+                Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
+
+                // Créer une fenêtre temporaire pour afficher l'alerte
+               
+
+                Environment.Exit(1);
                 return false;
             }
 

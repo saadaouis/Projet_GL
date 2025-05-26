@@ -187,8 +187,8 @@ namespace EasySave
                     DataContext = MainViewModel
                 };
         var forbiddenAppManager = new ForbiddenAppManager();
-        forbiddenAppManager.AddForbiddenProcess("notepad");
-        forbiddenAppManager.AddForbiddenProcess("calc");
+      //  forbiddenAppManager.AddForbiddenProcess("notepad");
+       // forbiddenAppManager.AddForbiddenProcess("calc");
 
         if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
         {
