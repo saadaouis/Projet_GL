@@ -15,6 +15,7 @@ using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.InteropServices;
 
 namespace EasySave
 {
@@ -187,8 +188,15 @@ namespace EasySave
                     DataContext = MainViewModel
                 };
         var forbiddenAppManager = new ForbiddenAppManager();
-      //  forbiddenAppManager.AddForbiddenProcess("notepad");
-       // forbiddenAppManager.AddForbiddenProcess("calc");
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            forbiddenAppManager.AddForbiddenProcess("Calculator");
+        }
+        else
+        {
+            forbiddenAppManager.AddForbiddenProcess("notepad");
+            forbiddenAppManager.AddForbiddenProcess("calc");
+        }
 
         if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
         {

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace EasySave.Services.ProcessControl
 {
@@ -9,18 +10,47 @@ namespace EasySave.Services.ProcessControl
     {
         // Internal list that holds the names of forbidden processes
         private readonly List<string> _forbiddenProcesses = new();
+        private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-        // Adds a new process name to the list of forbidden processes, if it’s not already present
+        // Adds a new process name to the list of forbidden processes, if its not already present
         public void AddForbiddenProcess(string processName)
         {
             if (!_forbiddenProcesses.Contains(processName))
-                _forbiddenProcesses.Add(processName);
+            {
+                // For macOS, ensure we have both .app and non-.app versions
+                if (IsMacOS)
+                {
+                    if (!processName.EndsWith(".app"))
+                    {
+                        _forbiddenProcesses.Add(processName);
+                        _forbiddenProcesses.Add(processName + ".app");
+                    }
+                    else
+                    {
+                        _forbiddenProcesses.Add(processName);
+                        _forbiddenProcesses.Add(processName.Replace(".app", ""));
+                    }
+                }
+                else
+                {
+                    _forbiddenProcesses.Add(processName);
+                }
+            }
         }
 
         // Removes a process name from the list of forbidden processes
         public void RemoveForbiddenProcess(string processName)
         {
-            _forbiddenProcesses.Remove(processName);
+            if (IsMacOS)
+            {
+                _forbiddenProcesses.Remove(processName);
+                _forbiddenProcesses.Remove(processName + ".app");
+                _forbiddenProcesses.Remove(processName.Replace(".app", ""));
+            }
+            else
+            {
+                _forbiddenProcesses.Remove(processName);
+            }
         }
 
         // Returns a read-only copy of the list of forbidden processes
@@ -35,11 +65,42 @@ namespace EasySave.Services.ProcessControl
         {
             foreach (var name in _forbiddenProcesses)
             {
-                // Use Process.GetProcessesByName to find running processes with the forbidden name
-                if (Process.GetProcessesByName(name).Any())
+                try
                 {
-                    runningApp = name;
-                    return true;
+                    var processes = Process.GetProcessesByName(name);
+                    if (processes.Any())
+                    {
+                        runningApp = name;
+                        return true;
+                    }
+
+                    // Additional check for macOS .app processes
+                    if (IsMacOS)
+                    {
+                        var allProcesses = Process.GetProcesses();
+                        foreach (var process in allProcesses)
+                        {
+                            try
+                            {
+                                if (process.ProcessName.Contains(name) || 
+                                    (name.EndsWith(".app") && process.ProcessName.Contains(name.Replace(".app", ""))))
+                                {
+                                    runningApp = name;
+                                    return true;
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore processes we can't access
+                                continue;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore any errors in process enumeration
+                    continue;
                 }
             }
 
