@@ -1,61 +1,162 @@
-# EasySave 1.0 
-Easysave is a powerful versioning and saving software designed to streamline project management and development workflows. Its core features include advanced saving utilities, comprehensive versioning tools, and a robust, lightweight architecture built on state-of-the-art development practices.
+# EasySave 2.0
+EasySave is a powerful versioning and saving software designed to streamline project management and development workflows. Its core features include advanced saving utilities, comprehensive versioning tools, and a robust, lightweight architecture built on state-of-the-art development practices.
 
-With Easysave, users benefit from efficient file management, secure version control, and a seamless user experience, making it an essential tool for developers and teams who prioritize efficiency, organization, and data integrity
+With EasySave, users benefit from efficient file management, secure version control, and a seamless user experience, making it an essential tool for developers and teams who prioritize efficiency, organization, and data integrity.
 
 ## Contributors
 The main contributors in this project are Olaf, Vincent, Seif & Achile.
-# Version 1.0 Specifications
 
-Easysave version 1.0 is a console application built using .NET Core, designed to provide efficient and reliable backup management. This initial version includes the following features:
+# Version 2.0 Specifications
 
-#### Supports up to 5 backup tasks, each defined by:
+EasySave version 2.0 is a modern desktop application built using .NET Core and Avalonia UI, providing an intuitive graphical interface while maintaining all the powerful features of version 1.0. This version includes significant improvements and new features:
 
-- A unique backup name.
+### Core Features
 
-- A source directory.
+#### Backup Management
+- Support for unlimited backup tasks, each defined by:
+  - A unique backup name
+  - A source directory
+  - A target directory
+  - Backup type (full or differential)
+  - Real-time progress tracking
+  - Detailed backup history
 
-- A target directory.
+#### Enhanced Security
+- File encryption using CryptoSoftLib
+- Secure handling of sensitive data
+- Process blocking during critical operations
+- Comprehensive error handling and recovery
 
-- Backup type (full or differential).
+#### Multilingual Support
+- Full support for English, French, and Welsh
+- Dynamic language switching
+- Fallback to English for missing translations
+- Translation caching for improved performance
 
-#### Multilingual support for English and French users.
+#### Modern User Interface
+- Clean and intuitive Avalonia-based GUI
+- Real-time progress visualization
+- Drag-and-drop support
+- Dark/Light theme support
+- Responsive design
 
-#### Command-line operation, allowing:
+#### Advanced File Operations
+- Support for local, external, and network drives
+- Differential backup optimization
+- Automatic file conflict resolution
+- Progress tracking for large operations
 
-- Sequential execution of backups (e.g., 1-3 to run backups 1 to 3).
+#### Comprehensive Logging System
+- Real-time logging of all operations
+- Detailed error tracking and reporting
+- JSON-based log format for easy parsing
+- Configurable log locations
+- Log rotation and management
 
-- Selective execution of specific backups (e.g., 1;3 to run backups 1 and 3).
+#### State Management
+- Real-time backup state tracking
+- Progress monitoring
+- Error state handling
+- State persistence between sessions
 
-#### Supports source and target directories on:
+### Technical Improvements
 
-- Local drives.
+#### Error Handling
+- Comprehensive try-catch blocks
+- Detailed error messages
+- Graceful error recovery
+- User-friendly error notifications
 
-- External drives.
+#### Performance
+- Asynchronous operations
+- Progress tracking
+- Efficient file operations
+- Memory optimization
 
-- Network drives.
+#### Code Quality
+- Clean architecture (MVVM pattern)
+- Comprehensive documentation
+- Unit test coverage
+- Code consistency
 
-#### Comprehensive logging system:
+## System Requirements
 
-- Real-time logging of all backup actions (file transfers, directory creation, etc.).
+- Windows 10/11, macOS 10.15+, or Linux
+- .NET 7.0 or later
+- 4GB RAM minimum
+- 500MB free disk space
 
-- Minimum log details include timestamp, backup name, source and destination paths, file size, and transfer time.
+## Installation
 
-Log entries are stored in a daily JSON file, designed for compatibility with future projects.
+1. Download the latest release from the releases page
+2. Extract the archive to your desired location
+3. Run EasySave.exe (Windows) or EasySave (macOS/Linux)
 
-#### Real-time status file:
+## Usage
 
-Tracks progress and status of each backup job.
+1. Launch the application
+2. Configure your backup tasks using the intuitive interface
+3. Select your desired language
+4. Start your backup operations
+5. Monitor progress in real-time
+6. View detailed logs and history
 
-Records total files, transfer size, remaining files, and active file details.
+## Development
 
-JSON format for logs and status files with line breaks for readability.
+### Prerequisites
+- .NET 9.0 SDK
+- Visual Studio 2022 or JetBrains Rider
+- Git
 
-Configurable log and status file locations, avoiding hardcoded paths like "C:\temp" to ensure compatibility with client servers.
+### Building from Source
+```bash
+git clone https://github.com/saadaouis/Projet_GL.git
+cd Projet_GL
+dotnet restore
+dotnet build
+```
 
-**This foundational version ensures a balance between simplicity and functionality, setting a solid base for future enhancements, including a potential GUI in version 2.0.**
+### Running Tests
+```bash
+dotnet test
+```
 
+## Architecture
 
+The application follows a clean architecture pattern with the following components:
+
+### Models
+- `ModelBackup`: Manages backup operations
+- `ModelConfig`: Handles configuration
+- `BackupState`: Tracks backup state
+
+### Services
+- `TranslationService`: Manages multilingual support
+- `CryptosoftService`: Handles file encryption
+- `LoggingService`: Manages logging
+- `StateRecorder`: Tracks application state
+
+### ViewModels
+- `MainViewModel`: Main application logic
+- `BackupViewModel`: Backup operations
+- `ConfigViewModel`: Configuration management
+
+### Views
+- `MainView`: Main application window
+- `BackupView`: Backup management interface
+- `ConfigView`: Configuration interface
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Understanding the Architecture
 This part concerns the software architecture & design choices for this project. We decided to follow a MVC type architecture to ensure maximum scalability for future developpers and users. We also choose to add a few more features to the project that we deemed necessary for a complete MVP version of EasySave.
@@ -250,7 +351,7 @@ namespace Views{
 ```
 
 ## Sequence diagram
-This sequence diagram illustrates the complete data flow and interactions between the main classes of EasySave during a typical user session. It captures the user’s interactions with the system, how requests are processed, and how the system components (Model, View, Controller, Logger, and System) communicate to perform tasks like initialization, backup management, and configuration.
+This sequence diagram illustrates the complete data flow and interactions between the main classes of EasySave during a typical user session. It captures the user's interactions with the system, how requests are processed, and how the system components (Model, View, Controller, Logger, and System) communicate to perform tasks like initialization, backup management, and configuration.
 ```mermaid
 ---
 config:
