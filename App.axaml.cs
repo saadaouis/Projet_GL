@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -12,241 +14,95 @@ using CryptoSoftService;
 using EasySave.Models;
 using EasySave.Services.Logging; // Pour Logger
 using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
+using EasySave.Services.Translation;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.InteropServices;
 
 namespace EasySave
 {
-    /// <summary>
-    /// Extension methods for accessing services
-    /// </summary>
-    public static class ServiceExtensions
-    {
-        public static T GetService<T>() where T : class
-        {
-            return App.ServiceProvider.GetRequiredService<T>();
-        }
-    }
-
     /// <summary>
     /// Classe principale de l'application.
     /// </summary>
     public partial class App : Application
     {
         /// <summary>
-        /// Global access to the service provider
+        /// Gets the argument.
         /// </summary>
-        public static IServiceProvider ServiceProvider { get; private set; }
+        private readonly string? argument = Program.LaunchArgument ?? string.Empty;
 
-        public MainViewModel MainViewModel { get; private set; }
-        public ModelBackup ModelBackup { get; private set; }
-        public ModelConfig ModelConfig { get; private set; }
+        /// <summary>
+        /// Gets the project argument.
+        /// </summary>
+        private readonly string? projnum = Program.ProjectArgument ?? string.Empty;
+        
+        /// <summary>
+        /// Gets global access to the service provider.
+        /// </summary>
+        public static IServiceProvider? ServiceProvider { get; private set; }
 
-        private string argument = Program.LaunchArgument ?? string.Empty;
-        private string projnum = Program.ProjectArgument ?? string.Empty;
-        private int x = 0;
-        private int y = 0;
+        /// <summary>
+        /// Gets the main view model.
+        /// </summary>
+        public MainViewModel? MainViewModel { get; private set; }
 
+        /// <summary>
+        /// Gets the model backup.
+        /// </summary>
+        public ModelBackup? ModelBackup { get; private set; }
+
+        /// <summary>
+        /// Gets the model config.
+        /// </summary>
+        public ModelConfig? ModelConfig { get; private set; }
+
+        /// <summary>
+        /// Initializes the application.
+        /// </summary>
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
         }
 
+        /// <summary>
+        /// Called when the framework initialization is completed.
+        /// </summary>
         public override async void OnFrameworkInitializationCompleted()
         {
-           if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-    {
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        var serviceProvider = services.BuildServiceProvider();
-        ServiceProvider = serviceProvider;
-
-                // Récupération et initialisation du MainViewModel via DI
-                MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
-                ModelBackup = serviceProvider.GetRequiredService<ModelBackup>();
-                ModelConfig = serviceProvider.GetRequiredService<ModelConfig>();
-                await MainViewModel.InitializeAsync();
-
+            if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
                 try
                 {
-                    // Load config
-                    var config = ModelConfig.Load();
-
-                    // Set paths in ModelBackup
-                    if (!string.IsNullOrEmpty(config.Source))
-                    ModelBackup.SourcePath = config.Source;
-
-                    if (!string.IsNullOrEmpty(config.Destination))
-                    ModelBackup.DestinationPath = config.Destination;
+                    await this.InitializeApplicationAsync(desktop);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    throw new Exception("Erreur lors du chargement de la configuration.");
+                    await this.ShowErrorWindowAsync(
+                        "Initialization Error", 
+                        $"An error occurred during application initialization: {ex.Message}");
+                    Environment.Exit(1);
                 }
+            }
 
-                string BackupSource = ModelBackup.SourcePath;
-                string BackupDestination = ModelBackup.DestinationPath;
-                
-                List<EasySave.Models.ModelBackup.Project> list = await ModelBackup.FetchProjectsAsync();
-
-                char? separator = null;
-                string[] parts = Array.Empty<string>();
-
-                if (!string.IsNullOrEmpty(projnum))
-                {
-                    if (projnum.Contains('-'))
-                    {
-                        separator = '-';
-                    }
-                    else if (projnum.Contains(';'))
-                    {
-                        separator = ';';
-                    }
-
-                    if (separator != null)
-                    {
-                        parts = projnum.Split(separator.Value);
-                        if (parts.Length == 2)
-                        {
-                            x = int.Parse(parts[0]);
-                            y = int.Parse(parts[1]);
-                        }
-                    }
-
-                    if (list != null && list.Count > 0)
-                    {
-                        if (argument == "save")
-                        {
-                            if (separator == '-')
-                            {
-                                if (parts.Length == 2 && int.TryParse(parts[0], out int start) && int.TryParse(parts[1], out int end))
-                                {
-                                    // Convert to zero-based indices
-                                    x = start - 1;
-                                    y = end - 1;
-                                    for (int i = x; i <= y; i++)
-                                    {
-                                        Console.WriteLine($"Saving project (-): {list[i].Name}");
-                                        await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: false);
-                                    }
-                                }
-                            }
-                            else if (separator == ';')
-                            {
-                                parts = projnum.Split(';');
-                                foreach (var part in parts)
-                                {
-                                    if (int.TryParse(part, out int idx))
-                                    {
-                                        idx -= 1; // zero-based
-                                        if (idx >= 0 && idx < list.Count)
-                                        {
-                                            Console.WriteLine($"Saving project (;): {list[idx].Name}");
-                                            await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: false);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else if (argument == "diff")
-                        {
-                            if (separator == '-')
-                            {
-                                for (int i = x; i <= y; i++)
-                                {
-                                    await ModelBackup.SaveProjectAsync(list[i].Name, isDifferential: true);
-                                }
-                            }
-                            else if (separator == ';')
-                            {
-                                parts = projnum.Split(';');
-                                foreach (var part in parts)
-                                {
-                                    if (int.TryParse(part, out int idx))
-                                    {
-                                        idx -= 1; // Convert to zero-based index
-                                        if (idx >= 0 && idx < list.Count)
-                                        {
-                                            Console.WriteLine($"Saving project (;): {list[idx].Name} (diff: true)");
-                                            await ModelBackup.SaveProjectAsync(list[idx].Name, isDifferential: true);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                // Récupération des chemins dynamiques depuis le backupViewModel
-                string source = MainViewModel.BackupViewModel?.SourcePath ?? string.Empty;
-                string destination = MainViewModel.BackupViewModel?.DestinationPath ?? string.Empty;
-
-                // Configuration et affichage de la fenêtre principale
-                desktop.MainWindow = new MainWindow
-                {
-                    DataContext = MainViewModel
-                };
-        var forbiddenAppManager = new ForbiddenAppManager();
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            forbiddenAppManager.AddForbiddenProcess("Calculator");
-        }
-        else
-        {
-            forbiddenAppManager.AddForbiddenProcess("notepad");
-            forbiddenAppManager.AddForbiddenProcess("calc");
+            base.OnFrameworkInitializationCompleted();
         }
 
-        if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
-        {
-            // Console visible uniquement si ton projet est en mode Console Application
-            Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'exécution. Fermeture de l'application.");
-
-            // Créer une fenêtre temporaire pour afficher l'alerte
-            var warningWindow = new Window
-            {
-                Title = "Processus interdit détecté",
-                Width = 400,
-                Height = 150,
-                Content = new TextBlock
-                {
-                    Text = $"L'application interdite '{runningApp}' est en cours d'exécution.\nVeuillez la fermer avant de continuer.",
-                    Margin = new Thickness(20),
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                }
-            };
-
-            // Afficher la fenêtre en mode modal sans parent (car desktop.MainWindow pas encore créée)
-            await warningWindow.ShowDialog(null);
-
-            Environment.Exit(1);
-            return;
-        }
-
-        desktop.MainWindow = new MainWindow
-        {
-            DataContext = MainViewModel
-        };
-
-        desktop.MainWindow.Show();
-    }
-
-    base.OnFrameworkInitializationCompleted();
-        }
-
-        private void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services)
         {
             // Enregistrement des services
-            services.AddSingleton<EasySave.Services.Translation.TranslationService>();
-            services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<loggingService>(sp =>
+            services.AddSingleton<LoggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
-                return new loggingService(config.LogType);
-            }); // Enregistrement du Logger avec le type de log depuis la config
+                return new LoggingService(config.LogType);
+            });
+            services.AddSingleton<EasySave.Services.Translation.TranslationService>(sp =>
+            {
+                var logger = sp.GetRequiredService<LoggingService>();
+                return new TranslationService("Resources/translations.json");
+            });
+            services.AddSingleton<EasySave.Services.Translation.TranslationManager>();
+            services.AddSingleton<EasySave.Models.ModelConfig>();
+            services.AddSingleton<ForbiddenAppManager>();
 
             // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
@@ -256,7 +112,196 @@ namespace EasySave
             
             // Enregistrement des modèles
             services.AddSingleton<ModelBackup>();
-            services.AddSingleton<ModelConfig>();
+        }
+
+        private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            var serviceProvider = services.BuildServiceProvider();
+            ServiceProvider = serviceProvider;
+
+            // Initialize core services
+            this.MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
+            this.ModelBackup = serviceProvider.GetRequiredService<ModelBackup>();
+            this.ModelConfig = serviceProvider.GetRequiredService<ModelConfig>();
+            
+            await this.MainViewModel.InitializeAsync();
+            this.LoadConfigurationAsync();
+            await this.HandleCommandLineArgumentsAsync();
+            
+            // Check for forbidden applications
+            if (await this.CheckForbiddenApplicationsAsync())
+            {
+                Environment.Exit(1);
+                return;
+            }
+
+            // Create and show main window
+            desktop.MainWindow = new MainWindow
+            {
+                DataContext = this.MainViewModel,
+            };
+            desktop.MainWindow.Show();
+        }
+
+        private void LoadConfigurationAsync()
+        {
+            try
+            {
+                var config = this.ModelConfig!.Load();
+                if (!string.IsNullOrEmpty(config.Source))
+                {
+                    this.ModelBackup!.SourcePath = config.Source;
+                }
+
+                if (!string.IsNullOrEmpty(config.Destination))
+                {
+                    this.ModelBackup!.DestinationPath = config.Destination;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error loading configuration: {ex.Message}", ex);
+            }
+        }
+
+        private async Task HandleCommandLineArgumentsAsync()
+        {
+            if (string.IsNullOrEmpty(this.projnum))
+            {
+                return;
+            }   
+
+            var list = await this.ModelBackup!.FetchProjectsAsync();
+            if (list == null || list.Count == 0)
+            {
+                return;
+            }
+
+            var (start, end) = this.ParseProjectRange(this.projnum);
+            if (start == -1 || end == -1)
+            {
+                return;
+            }
+
+            if (this.argument == "save")
+            {
+                await this.HandleSaveCommandAsync(list, start, end);
+            }
+            else if (this.argument == "diff")
+            {
+                await this.HandleDiffCommandAsync(list, start, end);
+            }
+        }
+
+        private (int Start, int End) ParseProjectRange(string range)
+        {
+            char? separator = null;
+            if (range.Contains('-'))
+            {
+                separator = '-';
+            }
+            else if (range.Contains(';'))
+            {
+                separator = ';';
+            }
+
+            if (separator == null)
+            {
+                return (-1, -1);
+            }
+
+            var parts = range.Split(separator.Value);
+            if (parts.Length != 2)
+            {
+                return (-1, -1);
+            }
+
+            if (!int.TryParse(parts[0], out int start) || !int.TryParse(parts[1], out int end))
+            {
+                return (-1, -1);
+            }
+
+            return (start - 1, end - 1); // Convert to zero-based indices
+        }
+
+        private async Task HandleSaveCommandAsync(List<ModelBackup.Project> projects, int start, int end)
+        {
+            for (int i = start; i <= end; i++)
+            {
+                if (i >= 0 && i < projects.Count)
+                {
+                    Console.WriteLine($"Saving project: {projects[i].Name}");
+                    await this.ModelBackup!.SaveProjectAsync(projects[i].Name, isDifferential: false);
+                }
+            }
+        }
+
+        private async Task HandleDiffCommandAsync(List<ModelBackup.Project> projects, int start, int end)
+        {
+            for (int i = start; i <= end; i++)
+            {
+                if (i >= 0 && i < projects.Count)
+                {
+                    Console.WriteLine($"Saving project (diff): {projects[i].Name}");
+                    await this.ModelBackup!.SaveProjectAsync(projects[i].Name, isDifferential: true);
+                }
+            }
+        }
+
+        private async Task<bool> CheckForbiddenApplicationsAsync()
+        {
+            var forbiddenAppManager = App.ServiceProvider!.GetRequiredService<ForbiddenAppManager>();
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    forbiddenAppManager.AddForbiddenProcess("Calculator");
+                }
+                else
+                {
+                    forbiddenAppManager.AddForbiddenProcess("notepad");
+                    forbiddenAppManager.AddForbiddenProcess("calc");
+                }
+
+                if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
+                {
+                    await this.ShowErrorWindowAsync(
+                        "Forbidden Application Detected",
+                        $"The forbidden application '{runningApp}' is currently running.\nPlease close it before continuing.");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                await this.ShowErrorWindowAsync(
+                    "Error",
+                    $"An error occurred while checking for forbidden applications: {ex.Message}");
+                return true;
+            }
+
+            return false;
+        }
+
+        private async Task ShowErrorWindowAsync(string title, string message)
+        {
+            var warningWindow = new Window
+            {
+                Title = title,
+                Width = 400,
+                Height = 150,
+                Content = new TextBlock
+                {
+                    Text = message,
+                    Margin = new Thickness(20),
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                },
+            };
+
+            await warningWindow.ShowDialog(App.ServiceProvider!.GetRequiredService<MainWindow>());
         }
     }
 }

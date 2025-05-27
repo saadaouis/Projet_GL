@@ -1,18 +1,29 @@
-using System;
-using System.IO;
+// <copyright file="loggingService.cs" company="EasySave">
+// Copyright (c) EasySave. All rights reserved.
+// </copyright>
+
 using System.Collections.Generic;
+using System.IO;
 using EasyLogs;
-using EasySave.Models;
+
 namespace EasySave.Services.Logging
 {
-    public class loggingService
+    /// <summary>
+    /// Logging service class for handling logging.
+    /// </summary>
+    public class LoggingService
     {
         private const string LogFolder = "logs/";
         private const string LogName = "logs";
         private EasyLogs.LogType logType;
 
         private ILogger logger;
-        public loggingService(string configLogType)
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoggingService"/> class.
+        /// </summary>
+        /// <param name="configLogType">The type of log to use.</param>
+        public LoggingService(string configLogType)
         {
             switch (configLogType)
             {
@@ -25,7 +36,6 @@ namespace EasySave.Services.Logging
                 case "txt":
                     this.logType = EasyLogs.LogType.TXT;
                     break;
-                    
             }
 
             // Créer un dossier logs s'il n'existe pas
@@ -34,12 +44,16 @@ namespace EasySave.Services.Logging
                 Directory.CreateDirectory(LogFolder);
             }
 
-            logger = LoggerFactory.CreateLogger(LogFolder, this.logType);
+            this.logger = LoggerFactory.CreateLogger(LogFolder, this.logType);
         }
 
+        /// <summary>
+        /// Logs the data.
+        /// </summary>
+        /// <param name="data">The data to log.</param>
         public void Log(Dictionary<string, string> data)
         {
-            logger.Log(data);
+            this.logger.Log(data);
         }
     }   
 }

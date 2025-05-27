@@ -3,14 +3,13 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using CryptoSoftService;
 using EasySave.Models;
+using EasySave.Services.Logging;
 using EasySave.Services.Translation;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
-using EasySave.Services.Logging;
 
 namespace EasySave.ViewModels
 {
@@ -26,8 +25,6 @@ namespace EasySave.ViewModels
         private bool isInitialized;
         private ViewModelBase currentView;
 
-        public BackupViewModel BackupViewModel => this.backupViewModel;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
@@ -38,10 +35,10 @@ namespace EasySave.ViewModels
         public MainViewModel(ModelConfig modelConfig, TranslationService translationService, BackupViewModel backupViewModel, ConfigViewModel configViewModel)
             : base(translationService)
         {
-            this.modelConfig = modelConfig;
-            this.translationService = translationService;
-            this.backupViewModel = backupViewModel;
-            this.configViewModel = configViewModel;
+            this.modelConfig = App.ServiceProvider!.GetRequiredService<ModelConfig>();
+            this.translationService = App.ServiceProvider!.GetRequiredService<TranslationService>();
+            this.backupViewModel = App.ServiceProvider!.GetRequiredService<BackupViewModel>();
+            this.configViewModel = App.ServiceProvider!.GetRequiredService<ConfigViewModel>();
             this.configViewModel.SetMainViewModel(this);
             this.currentView = this.configViewModel;
 
@@ -71,6 +68,11 @@ namespace EasySave.ViewModels
             get => this.isInitialized;
             set => this.SetProperty(ref this.isInitialized, value);
         }
+
+        /// <summary>
+        /// Gets the backup view model.
+        /// </summary>
+        public BackupViewModel BackupViewModel => this.backupViewModel;
 
         /// <summary>
         /// Gets or sets the current view.
@@ -119,7 +121,7 @@ namespace EasySave.ViewModels
                 await this.translationService.SetLanguageAsync(languageToSet);
                 Console.WriteLine("Testing translation: " + this.translationService.GetTranslation("menu.settings.autosave"));
 
-                var logger = App.ServiceProvider.GetRequiredService<loggingService>();
+                var logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
                 logger.Log(new Dictionary<string, string> { { "message", "MainViewModel: Initialized" } });
 
                 this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;
@@ -226,6 +228,7 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Generic relay command class that implements the ICommand interface and supports parameters.
         /// </summary>
+        /// <typeparam name="T">The type of the parameter.</typeparam>
         public class RelayCommand<T> : ICommand
         {
             private readonly Action<T> execute;

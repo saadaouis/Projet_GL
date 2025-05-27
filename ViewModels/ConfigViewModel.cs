@@ -37,8 +37,8 @@ namespace EasySave.ViewModels
             this.currentConfig = new ModelConfig.Config();
             this.originalConfig = new ModelConfig.Config();
 
-            this.AvailableLanguages = new List<string> { "En", "Fr", "Gw" };
-            this.AvailableLogTypes = new List<string> { "json", "xml", "txt" };
+            this.AvailableLanguages = ["En", "Fr", "Gw"];
+            this.AvailableLogTypes = ["json", "xml", "txt"];
             this.SaveConfigCommand = new MainViewModel.AsyncRelayCommand(this.ExecuteSaveConfigAsync, this.CanExecuteSaveConfig);
             this.CancelCommand = new MainViewModel.RelayCommand(this.ExecuteCancel);
         }

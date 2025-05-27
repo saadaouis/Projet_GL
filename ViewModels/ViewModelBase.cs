@@ -5,22 +5,26 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using EasySave.Services.Translation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.ViewModels
 {
     /// <summary>
     /// Base class for all view models.
     /// </summary>
-    public abstract class ViewModelBase : INotifyPropertyChanged
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="ViewModelBase"/> class.
+    /// </remarks>
+    /// <param name="translationService">The translation service.</param>
+    public abstract class ViewModelBase(TranslationService translationService) : INotifyPropertyChanged
     {
-        private readonly TranslationService translationService;
-        private readonly TranslationManager translationManager;
+        private readonly TranslationService translationService = translationService;
+        private readonly TranslationManager translationManager = App.ServiceProvider!.GetRequiredService<TranslationManager>();
 
-        protected ViewModelBase(TranslationService translationService)
-        {
-            this.translationService = translationService;
-            this.translationManager = new TranslationManager(translationService);
-        }
+        /// <summary>
+        /// Event raised when a property value changes.
+        /// </summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
         /// Gets the translation manager for XAML bindings.
@@ -36,11 +40,6 @@ namespace EasySave.ViewModels
         {
             return this.translationService.GetTranslation(key);
         }
-
-        /// <summary>
-        /// Event raised when a property value changes.
-        /// </summary>
-        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
         /// Raises the PropertyChanged event.
