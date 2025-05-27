@@ -35,10 +35,10 @@ namespace EasySave.ViewModels
         public MainViewModel(ModelConfig modelConfig, TranslationService translationService, BackupViewModel backupViewModel, ConfigViewModel configViewModel)
             : base(translationService)
         {
-            this.modelConfig = modelConfig;
-            this.translationService = translationService;
-            this.backupViewModel = backupViewModel;
-            this.configViewModel = configViewModel;
+            this.modelConfig = App.ServiceProvider!.GetRequiredService<ModelConfig>();
+            this.translationService = App.ServiceProvider!.GetRequiredService<TranslationService>();
+            this.backupViewModel = App.ServiceProvider!.GetRequiredService<BackupViewModel>();
+            this.configViewModel = App.ServiceProvider!.GetRequiredService<ConfigViewModel>();
             this.configViewModel.SetMainViewModel(this);
             this.currentView = this.configViewModel;
 
@@ -121,7 +121,7 @@ namespace EasySave.ViewModels
                 await this.translationService.SetLanguageAsync(languageToSet);
                 Console.WriteLine("Testing translation: " + this.translationService.GetTranslation("menu.settings.autosave"));
 
-                var logger = App.ServiceProvider.GetRequiredService<LoggingService>();
+                var logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
                 logger.Log(new Dictionary<string, string> { { "message", "MainViewModel: Initialized" } });
 
                 this.backupViewModel.SourcePath = loadedConfig.Source ?? string.Empty;

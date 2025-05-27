@@ -11,6 +11,7 @@ using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services.ProcessControl;
 using EasySave.Services.Translation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.ViewModels
 {
@@ -42,12 +43,12 @@ namespace EasySave.ViewModels
             this.sourcePath = string.Empty;
             this.destinationPath = string.Empty;
 
-            this.modelBackup = new ModelBackup();
+            this.modelBackup = App.ServiceProvider!.GetRequiredService<ModelBackup>();
             this.translationService = translationService;
 
-            this.availableProjects = new List<ModelBackup.Project>();
-            this.availableBackups = new List<ModelBackup.Project>();
-            this.SelectedProjects = new ObservableCollection<ModelBackup.Project>();
+            this.availableProjects = [];
+            this.availableBackups = [];
+            this.SelectedProjects = [];
 
             // Setup forbidden app manager and processes to block
             this.appManager = new ForbiddenAppManager();

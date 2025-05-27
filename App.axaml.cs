@@ -90,12 +90,14 @@ namespace EasySave
         {
             // Enregistrement des services
             services.AddSingleton<EasySave.Services.Translation.TranslationService>();
+            services.AddSingleton<EasySave.Services.Translation.TranslationManager>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
             services.AddSingleton<LoggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
                 return new LoggingService(config.LogType);
-            }); // Enregistrement du Logger avec le type de log depuis la config
+            });
+            services.AddSingleton<ForbiddenAppManager>();
 
             // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
@@ -105,7 +107,6 @@ namespace EasySave
             
             // Enregistrement des modèles
             services.AddSingleton<ModelBackup>();
-            services.AddSingleton<ModelConfig>();
         }
 
         private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)
@@ -246,7 +247,7 @@ namespace EasySave
 
         private async Task<bool> CheckForbiddenApplicationsAsync()
         {
-            var forbiddenAppManager = new ForbiddenAppManager();
+            var forbiddenAppManager = App.ServiceProvider!.GetRequiredService<ForbiddenAppManager>();
             try
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -267,9 +268,12 @@ namespace EasySave
                     return true;
                 }
             }
-            finally
+            catch (Exception ex)
             {
-                forbiddenAppManager.Dispose();
+                await this.ShowErrorWindowAsync(
+                    "Error",
+                    $"An error occurred while checking for forbidden applications: {ex.Message}");
+                return true;
             }
 
             return false;

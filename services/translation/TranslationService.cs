@@ -22,6 +22,11 @@ namespace EasySave.Services.Translation
         private string currentLanguage;
 
         /// <summary>
+        /// Event raised when the language changes.
+        /// </summary>
+        public event EventHandler? LanguageChanged;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TranslationService"/> class.
         /// </summary>
         /// <param name="translationsPath">Path to the translations file.</param>
@@ -66,6 +71,7 @@ namespace EasySave.Services.Translation
                 this.CurrentLanguage = newLanguage;
                 await this.LoadTranslationsAsync(); // Await the loading
                 Console.WriteLine($"Translations presumably loaded for language: {this.currentLanguage}");
+                this.OnLanguageChanged();
             }
             else
             {
@@ -161,6 +167,14 @@ namespace EasySave.Services.Translation
         public string[] GetAvailableLanguages()
         {
             return AvailableLanguages;
+        }
+
+        /// <summary>
+        /// Raises the LanguageChanged event.
+        /// </summary>
+        protected virtual void OnLanguageChanged()
+        {
+            this.LanguageChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 } 
