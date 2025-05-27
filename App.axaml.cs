@@ -14,6 +14,7 @@ using CryptoSoftService;
 using EasySave.Models;
 using EasySave.Services.Logging; // Pour Logger
 using EasySave.Services.ProcessControl; // Pour ForbiddenAppManager
+using EasySave.Services.Translation;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,14 +90,18 @@ namespace EasySave
         private static void ConfigureServices(IServiceCollection services)
         {
             // Enregistrement des services
-            services.AddSingleton<EasySave.Services.Translation.TranslationService>();
-            services.AddSingleton<EasySave.Services.Translation.TranslationManager>();
-            services.AddSingleton<EasySave.Models.ModelConfig>();
             services.AddSingleton<LoggingService>(sp =>
             {
                 var config = sp.GetRequiredService<ModelConfig>().Load();
                 return new LoggingService(config.LogType);
             });
+            services.AddSingleton<EasySave.Services.Translation.TranslationService>(sp =>
+            {
+                var logger = sp.GetRequiredService<LoggingService>();
+                return new TranslationService("Resources/translations.json");
+            });
+            services.AddSingleton<EasySave.Services.Translation.TranslationManager>();
+            services.AddSingleton<EasySave.Models.ModelConfig>();
             services.AddSingleton<ForbiddenAppManager>();
 
             // Enregistrement des ViewModels
