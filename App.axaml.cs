@@ -259,6 +259,11 @@ namespace EasySave
                 {
                     forbiddenAppManager.AddForbiddenProcess("Calculator");
                 }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    forbiddenAppManager.AddForbiddenProcess("dolphin");
+                    forbiddenAppManager.AddForbiddenProcess("libreoffice");
+                }
                 else
                 {
                     forbiddenAppManager.AddForbiddenProcess("notepad");
