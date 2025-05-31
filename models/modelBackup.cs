@@ -28,6 +28,7 @@ namespace EasySave.Models
         private readonly Dictionary<string, BackupState> backupStates = new();
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
+        private List<string> forbiddenProcesses = new();
 
         private readonly LoggingService logger;
 
@@ -45,6 +46,16 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
         }
 
         /// <summary>
@@ -57,6 +68,16 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
@@ -158,15 +179,6 @@ namespace EasySave.Models
         {
             var stopwatch = Stopwatch.StartNew();
             var forbiddenAppManager = new ForbiddenAppManager();
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                forbiddenAppManager.AddForbiddenProcess("Calculator");
-            }
-            else
-            {
-                forbiddenAppManager.AddForbiddenProcess("notepad");
-                forbiddenAppManager.AddForbiddenProcess("calc");
-            }
 
             // V�rifie si un processus bloquant est en cours d'ex�cution
             if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
@@ -309,6 +321,13 @@ namespace EasySave.Models
                     this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
+                        while (this.IsBlockedProcessRunning())
+                        {
+                            Console.WriteLine("A blocked process is running, waiting for it to finish...");
+                            pauseSave();
+                            if()
+                        }   
+                        
                         if (File.Exists(file))
                         {
                             try
@@ -726,12 +745,11 @@ namespace EasySave.Models
         /// 
         private bool IsBlockedProcessRunning()
         {
-            string[] blockedProcesses = { "notepad", "calc", "calculator" };
             return Process.GetProcesses().Any(p =>
             {
                 try 
                 {
-                    return blockedProcesses.Contains(p.ProcessName.ToLower()); 
+                    return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                 }
                 catch 
                 {
