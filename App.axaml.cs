@@ -255,21 +255,6 @@ namespace EasySave
             var forbiddenAppManager = App.ServiceProvider!.GetRequiredService<ForbiddenAppManager>();
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    forbiddenAppManager.AddForbiddenProcess("Calculator");
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    forbiddenAppManager.AddForbiddenProcess("dolphin");
-                    forbiddenAppManager.AddForbiddenProcess("libreoffice");
-                }
-                else
-                {
-                    forbiddenAppManager.AddForbiddenProcess("notepad");
-                    forbiddenAppManager.AddForbiddenProcess("calc");
-                }
-
                 if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
                 {
                     await this.ShowErrorWindowAsync(
