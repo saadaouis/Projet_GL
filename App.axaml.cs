@@ -300,8 +300,13 @@ namespace EasySave
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 },
             };
+            
+            Console.WriteLine("Error: " + title + " " + message);
 
-            await warningWindow.ShowDialog(App.ServiceProvider!.GetRequiredService<MainWindow>());
+            if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                await warningWindow.ShowDialog(desktop.MainWindow);
+            }
         }
     }
 }

@@ -119,6 +119,9 @@ namespace EasySave.Models
             /// <summary>Gets or sets the default destination directory path for backups.</summary>
             public string Destination { get; set; } = string.Empty;
 
+            /// <summary>Gets or sets the maximum file size for backups.</summary>
+            public long MaxFolderSize { get; set; } = 2000000000;
+
             /// <summary>Gets or sets the application language (e.g., "En", "Fr").</summary>
             public string Language { get; set; } = "En";
 
