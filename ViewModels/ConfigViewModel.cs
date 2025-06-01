@@ -141,6 +141,7 @@ namespace EasySave.ViewModels
                 Source = configToClone.Source,
                 Destination = configToClone.Destination,
                 Language = configToClone.Language,
+                MaxFolderSize = configToClone.MaxFolderSize,
             };
         }
     }

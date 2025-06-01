@@ -80,6 +80,13 @@
                                     <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"
                                              Foreground="#666"/>
                                     
+                                    <!-- Warning for projects exceeding max size -->
+                                    <TextBlock Text="{Binding T[backup.max_size_warning]}"
+                                             Foreground="Red"
+                                             FontSize="12"s
+                                             Margin="0,4,0,0"
+                                             IsVisible="{Binding Size, Converter={StaticResource SizeWarningConverter}}"/>
+                                    
                                     <!-- Individual Project Progress Bar -->
                                     <Grid Margin="0,8,0,0">
                                         <ProgressBar x:Name="ProjectProgressBar"
@@ -179,12 +186,12 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
                         Spacing="15">
-                <Button Content="{Binding T[backup.save_project]}" 
+                <Button Content="{Binding T[backup.save]}"
                         Command="{Binding SaveSelectedProjectCommand}"
-                        IsEnabled="{Binding !IsBackupInProgress}"/>
+                        IsEnabled="{Binding CanStartBackup}"/>
                 <Button Content="{Binding T[backup.differential_backup]}"
                         Command="{Binding DifferentialBackupCommand}"
-                        IsEnabled="{Binding !IsBackupInProgress}"/>
+                        IsEnabled="{Binding CanStartBackup}"/>
             </StackPanel>
         </Grid>
     </Grid>

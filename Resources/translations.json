@@ -91,7 +91,7 @@
       "backup.type": "Tipe",
       "backup.status": "Statu",
       "backup.progress": "Pwogwé",
-      "backup.save_project": "Sawge pwoyet",
+      "backup.save": "Sawge pwoyet",
       "backup.differential_backup": "Sawgav bizawment",
       "backup.project.path": "Chimin du pwoyet",
       "backup.project.size": "Pwoi du pwoyet",

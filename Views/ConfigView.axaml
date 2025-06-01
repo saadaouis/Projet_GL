@@ -37,6 +37,12 @@
         <TextBox Text="{Binding CurrentConfig.Source}" Height="32" Padding="6"/>
       </StackPanel>
 
+      <!-- Max File Size -->
+      <StackPanel Orientation="Vertical" Spacing="5">
+        <TextBlock Text="{Binding T[config.max_file_size]}" FontWeight="Bold" FontSize="14"/>
+        <TextBox Text="{Binding CurrentConfig.MaxFolderSize}" Height="32" Padding="6"/>
+      </StackPanel>
+
       <!-- Buttons -->
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15" Margin="0,40,0,0">
         <Button Content="{Binding T[config.save]}" Command="{Binding SaveConfigCommand}" MinWidth="90" Height="36"/>

@@ -3,6 +3,7 @@
              xmlns:local="using:EasySave"
              xmlns:views="using:EasySave.Views"
              xmlns:vm="using:EasySave.ViewModels"
+             xmlns:converters="using:EasySave.Converters"
              x:Class="EasySave.App">
     <Application.DataTemplates>
         <DataTemplate DataType="{x:Type vm:BackupViewModel}">
@@ -29,9 +30,9 @@
     </Application.Styles>
 
     <Application.Resources>
-    <SolidColorBrush x:Key="TextForegroundBrush" Color="Gray"/>
-    <!-- or -->
-    <SolidColorBrush x:Key="ForegroundBrush" Color="#FFFFFFFF"/>
+        <ResourceDictionary>
+            <converters:SizeWarningConverter x:Key="SizeWarningConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 
 </Application> 

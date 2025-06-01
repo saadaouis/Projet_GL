@@ -24,6 +24,7 @@ namespace EasySave.ViewModels
         private readonly ModelBackup modelBackup;
         private readonly TranslationService translationService;
         private readonly ForbiddenAppManager appManager;
+        private readonly ModelConfig modelConfig;
 
         private bool isBackupInProgress;
         private Dictionary<string, double> projectProgress;
@@ -48,6 +49,7 @@ namespace EasySave.ViewModels
             this.modelBackup = App.ServiceProvider!.GetRequiredService<ModelBackup>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
             this.translationService = translationService;
+            this.modelConfig = App.ServiceProvider!.GetRequiredService<ModelConfig>();
 
             this.availableProjects = [];
             this.availableBackups = [];
@@ -83,12 +85,26 @@ namespace EasySave.ViewModels
         public ObservableCollection<ModelBackup.Project> SelectedProjects { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the backup can start.
+        /// </summary>
+        public bool CanStartBackup
+        {
+            get => !this.IsBackupInProgress && this.canStartBackup && !this.HasSelectedProjectsExceedingMaxSize();
+        }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the backup is in progress.
         /// </summary>
         public bool IsBackupInProgress
         {
             get => this.isBackupInProgress;
-            set => this.SetProperty(ref this.isBackupInProgress, value);
+            set
+            {
+                if (this.SetProperty(ref this.isBackupInProgress, value))
+                {
+                    this.OnPropertyChanged(nameof(this.CanStartBackup));
+                }
+            }
         }
 
         /// <summary>
@@ -248,7 +264,28 @@ namespace EasySave.ViewModels
                 this.SelectedProjects.Add(item);
             }
 
+            this.OnPropertyChanged(nameof(this.CanStartBackup));
             Console.WriteLine($"Selected projects updated. Count: {this.SelectedProjects.Count}");
+        }
+
+        /// <summary>
+        /// Checks if a project exceeds the maximum folder size.
+        /// </summary>
+        /// <param name="project">The project to check.</param>
+        /// <returns>True if the project exceeds the maximum size, false otherwise.</returns>
+        public bool IsProjectExceedingMaxSize(ModelBackup.Project project)
+        {
+            var config = this.modelConfig.Load();
+            return config.MaxFolderSize > 0 && project.Size > config.MaxFolderSize / 1000000;
+        }
+
+        /// <summary>
+        /// Checks if any selected project exceeds the maximum folder size.
+        /// </summary>
+        /// <returns>True if any selected project exceeds the maximum size, false otherwise.</returns>
+        public bool HasSelectedProjectsExceedingMaxSize()
+        {
+            return this.SelectedProjects.Any(p => this.IsProjectExceedingMaxSize(p));
         }
 
         /// <summary>
@@ -269,6 +306,12 @@ namespace EasySave.ViewModels
             if (this.SelectedProjects == null || this.SelectedProjects.Count == 0)
             {
                 Console.WriteLine("No projects selected to save.");
+                return;
+            }
+
+            if (this.HasSelectedProjectsExceedingMaxSize())
+            {
+                Console.WriteLine("Cannot start backup: One or more selected projects exceed the maximum folder size.");
                 return;
             }
 
