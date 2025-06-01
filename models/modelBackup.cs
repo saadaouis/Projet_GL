@@ -66,11 +66,53 @@ namespace EasySave.Models
         /// <summary>Gets or sets the destination directory path for backups.</summary>
         public string DestinationPath { get; set; } = string.Empty;
 
+
+
+
+        /// <summary>
+        /// Trie une liste de projets par priorité (1 = plus prioritaire en premier)
+        /// </summary>
+        public List<Project> SortProjectsByPriority(List<Project> projects)
+        {
+            return projects.OrderBy(p => p.Priority).ToList();
+        }
+
+
+        public async Task<List<bool>> SaveMultipleProjectsAsync(List<Project> projects, bool isDifferential = false)
+        {
+            var results = new List<bool>();
+
+            // Trier les projets par priorité (1 en premier, 5 en dernier)
+            var sortedProjects = SortProjectsByPriority(projects);
+
+            foreach (var project in sortedProjects)
+            {
+                results.Add(await SaveProjectAsync(
+                    project.Name,
+                    isDifferential,
+                    null, // pas de progress reporter pour les sauvegardes multiples
+                    project.Priority));
+            }
+
+            return results;
+        }
+
+
+
+
+
+
+
         /// <summary>
         /// Fetches the most recent projects from the filesystem.
         /// </summary>
         /// <param name="directory">The directory to fetch projects from.</param>
         /// <returns>A list of projects with their details.</returns>
+        /// 
+
+
+
+
         public async Task<List<Project>> FetchProjectsAsync(string directory = "source")
         {
             string path = string.Empty;
@@ -108,6 +150,7 @@ namespace EasySave.Models
                             LastBackup = dir.LastWriteTime,                                                                                                                                            
                             Size = Math.Round(sizeInMB, 2),
                             Path = dir.FullName,
+                            Priority = GetStoredPriority(dir.Name) // Méthode à implémenter selon votre stockage
                         };
 
                         projects.Add(project);
@@ -129,6 +172,15 @@ namespace EasySave.Models
 
             Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
+        }
+
+        // Méthode exemple pour récupérer la priorité stockée
+        private int GetStoredPriority(string projectName)
+        {
+            // Implémentez cette méthode selon comment vous stockez les priorités
+            // Par exemple dans un fichier JSON, une base de données, etc.
+            // Retourne 3 par défaut si non spécifié
+            return 3;
         }
 
         /// <summary>
@@ -185,7 +237,7 @@ namespace EasySave.Models
             });
         }
 
-        public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
+        public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null, int priority = 3 )
         {
             var stopwatch = Stopwatch.StartNew();
             var forbiddenAppManager = new ForbiddenAppManager();
@@ -211,6 +263,7 @@ namespace EasySave.Models
                 var startLog = new Dictionary<string, string>
                 {
                     { "Name", projectName },
+                    { "Priority", priority.ToString() }, // Ajout de la priorité
                     { "FileSource", Path.Combine(this.SourcePath, projectName) },
                     { "FileTarget", Path.Combine(this.DestinationPath, projectName) },
                     { "FileSize", "0" },
@@ -893,15 +946,18 @@ namespace EasySave.Models
             /// </summary>
             public string Path { get; set; } = string.Empty;
 
-/* 
-            /// <summary>
-            /// Gets or sets a value indicating whether gets or sets whether auto-save is enabled for this project.
-            /// </summary>
-            public bool AutoSaveEnabled { get; set; } = false;
-            /// <summary>
-            /// Gets or sets the auto-save interval in seconds.
-            /// </summary>
-            public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes */
+
+            // Priorité de sauvegarde (1 = plus prioritaire, 5 = moins prioritaire)
+            public int Priority { get; set; } = 3; // Valeur par défaut = moyenne
+            /* 
+                        /// <summary>
+                        /// Gets or sets a value indicating whether gets or sets whether auto-save is enabled for this project.
+                        /// </summary>
+                        public bool AutoSaveEnabled { get; set; } = false;
+                        /// <summary>
+                        /// Gets or sets the auto-save interval in seconds.
+                        /// </summary>
+                        public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes */
         }
     }
 }
