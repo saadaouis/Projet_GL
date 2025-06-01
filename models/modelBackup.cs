@@ -29,6 +29,9 @@ namespace EasySave.Models
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
         private List<string> forbiddenProcesses = new();
+        private volatile bool isPaused = false;
+        private readonly object pauseLock = new();
+
 
         private readonly LoggingService logger;
 
@@ -152,6 +155,28 @@ namespace EasySave.Models
             Console.WriteLine($"FetchProjects() completed. Total projects fetched: {projects.Count}");
             return projects;
         }
+
+        public void PauseSave()
+        {
+            isPaused = true;
+            Console.WriteLine("Save paused.");
+        }
+
+        public void ResumeSave()
+        {
+            lock (pauseLock)
+            {
+                isPaused = false;
+                Monitor.PulseAll(pauseLock);
+                Console.WriteLine("Save resumed.");
+            }
+        }
+
+        public void StopSave()
+        {
+
+        }
+
 
         /// <summary>
         /// Gets the current backup state for a project.
@@ -299,10 +324,10 @@ namespace EasySave.Models
                         progressReporter?.Report(0); // Report 0% on failure if needed
                         return false;
                     }
-                    
+
                     // Wait a bit to ensure all files are written
                     await Task.Delay(1000);
-                    
+
                     Console.WriteLine($"Verifying files in {versionDir}");
                     if (!Directory.Exists(versionDir))
                     {
@@ -321,13 +346,28 @@ namespace EasySave.Models
                     this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
-                        while (this.IsBlockedProcessRunning())
+                        // Pause logic
+                        lock (pauseLock)
                         {
-                            Console.WriteLine("A blocked process is running, waiting for it to finish...");
-                            pauseSave();
-                            if()
-                        }   
-                        
+                            while (isPaused)
+                            {
+                                Console.WriteLine("Backup is paused, waiting...");
+                                Monitor.Wait(pauseLock);
+                            }
+                        }
+
+
+                        // Check for forbidden process and pause if needed
+                        if (this.IsBlockedProcessRunning())
+                        {
+                            PauseSave();
+                            while (this.IsBlockedProcessRunning())
+                            {
+                                Thread.Sleep(1000); // Check every second
+                            }
+                            ResumeSave();
+                        }
+
                         if (File.Exists(file))
                         {
                             try
@@ -348,9 +388,10 @@ namespace EasySave.Models
                             Console.WriteLine($"File {file} does not exist");
                         }
                     }
-
-                    Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
                 }
+
+                Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
+                
 
                 state.IsComplete = true;
                 state.CurrentOperation = "Complete";
