@@ -58,7 +58,7 @@ namespace EasySave
         await MainViewModel.InitializeAsync();
 
         var forbiddenAppManager = new ForbiddenAppManager();
-      //  forbiddenAppManager.AddForbiddenProcess("notepad");
+        forbiddenAppManager.AddForbiddenProcess("notepad");
        // forbiddenAppManager.AddForbiddenProcess("calc");
 
         if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
