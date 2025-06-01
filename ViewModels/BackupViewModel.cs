@@ -11,6 +11,7 @@ using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services.ProcessControl;
 using EasySave.Services.Translation;
+using EasySave.Services.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.ViewModels
@@ -32,6 +33,7 @@ namespace EasySave.ViewModels
         private string destinationPath;
         private bool canStartBackup;
         private string forbiddenAppName;
+        private readonly LoggingService logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackupViewModel"/> class.
@@ -44,6 +46,7 @@ namespace EasySave.ViewModels
             this.destinationPath = string.Empty;
 
             this.modelBackup = App.ServiceProvider!.GetRequiredService<ModelBackup>();
+            this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
             this.translationService = translationService;
 
             this.availableProjects = [];
@@ -225,6 +228,8 @@ namespace EasySave.ViewModels
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task SaveSelectedProjectsAsync(bool isDifferential = false)
         {
+            List<Task<(string ProjectName, bool Result)>> tasks = new();
+            
             if (!this.canStartBackup)
             {
                 Console.WriteLine($"Impossible de d�marrer la sauvegarde, le processus \"{this.forbiddenAppName}\" est actif.");
@@ -266,18 +271,29 @@ namespace EasySave.ViewModels
                         Console.WriteLine($"Overall Progress: {this.OverallProgress:F2}%, Current Project ({project.Name}): {currentProjectProgress:F2}%");
                     });
 
-                    bool success = await this.modelBackup.SaveProjectAsync(project.Name, isDifferential, progressReporter);
-                    if (success)
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        bool result = await this.modelBackup.SaveProjectAsync(project.Name, isDifferential, progressReporter);
+                        return (project.Name, result);
+                    }));
+                }
+
+                var results = await Task.WhenAll(tasks);
+
+                // ✅ Analyse les résultats
+                foreach (var (projectName, result) in results)
+                {
+                    if (result)
                     {
                         projectsBackedUpSoFar++;
-                        Console.WriteLine($"Project {project.Name} saved successfully.");
+                        Console.WriteLine($"✅ Project {projectName} saved successfully.");
+                        this.logger.Log(new Dictionary<string, string> { { "message", $"Project {projectName} saved successfully." } });
                     }
                     else
                     {
                         allSucceeded = false;
-                        Console.WriteLine($"Project {project.Name} failed to save.");
-
-                        // D�cider si on continue ou pas : ici on continue
+                        Console.WriteLine($"❌ Project {projectName} failed to save.");
+                        this.logger.Log(new Dictionary<string, string> { { "message", $"Project {projectName} failed to save." } });
                     }
 
                     this.OverallProgress = (projectsBackedUpSoFar * 100.0) / totalProjectsToBackup;
