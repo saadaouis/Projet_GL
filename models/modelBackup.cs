@@ -61,6 +61,16 @@ namespace EasySave.Models
                 .Select(s => s.Trim().ToLower())
                 .ToList();
             }
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
         }
 
         /// <summary>
@@ -73,6 +83,16 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
 
             // Load forbidden processes from config
             var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
@@ -371,8 +391,10 @@ namespace EasySave.Models
                         return false;
                     }
 
+
                     // Wait a bit to ensure all files are written
                     await Task.Delay(1000);
+
 
                     Console.WriteLine($"Verifying files in {versionDir}");
                     if (!Directory.Exists(versionDir))
@@ -450,6 +472,8 @@ namespace EasySave.Models
                     }
                 }
 
+                Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
+                
                 Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
                 
 
@@ -850,6 +874,7 @@ namespace EasySave.Models
             {
                 try 
                 {
+                    return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                     return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                 }
                 catch 
