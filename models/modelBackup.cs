@@ -29,8 +29,9 @@ namespace EasySave.Models
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
         private List<string> forbiddenProcesses = new();
-        private volatile bool isPaused = false;
-        private readonly object pauseLock = new();
+        private readonly Dictionary<string, bool> pausedProjects = new();
+        private readonly Dictionary<string, bool> stoppedProjects = new();
+
 
 
         private readonly LoggingService logger;
@@ -156,27 +157,36 @@ namespace EasySave.Models
             return projects;
         }
 
-        public void PauseSave()
+        
+        public void PauseProject(string projectName)
         {
-            isPaused = true;
-            Console.WriteLine("Save paused.");
+            lock (pausedProjects) { pausedProjects[projectName] = true; }
         }
 
-        public void ResumeSave()
+        public void ResumeProject(string projectName)
         {
-            lock (pauseLock)
+            lock (pausedProjects)
             {
-                isPaused = false;
-                Monitor.PulseAll(pauseLock);
-                Console.WriteLine("Save resumed.");
+                pausedProjects[projectName] = false;
+                Monitor.PulseAll(pausedProjects);
             }
         }
 
-        public void StopSave()
+        public void StopProject(string projectName)
         {
-
+            lock (stoppedProjects) { stoppedProjects[projectName] = true; }
+            ResumeProject(projectName); // To break out of pause if needed
         }
 
+        private bool IsProjectPaused(string projectName)
+        {
+            lock (pausedProjects) { return pausedProjects.TryGetValue(projectName, out var p) && p; }
+        }
+
+        private bool IsProjectStopped(string projectName)
+        {
+            lock (stoppedProjects) { return stoppedProjects.TryGetValue(projectName, out var s) && s; }
+        }
 
         /// <summary>
         /// Gets the current backup state for a project.
@@ -346,16 +356,19 @@ namespace EasySave.Models
                     this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
-                        // Pause logic
-                        lock (pauseLock)
+
+                        if (IsProjectStopped(projectName))
                         {
-                            while (isPaused)
-                            {
-                                Console.WriteLine("Backup is paused, waiting...");
-                                Monitor.Wait(pauseLock);
-                            }
+                            break;
                         }
 
+                        lock (pausedProjects)
+                        {
+                            while (IsProjectPaused(projectName))
+                            {
+                                Monitor.Wait(pausedProjects);
+                            }
+                        }
 
                         // Check for forbidden process and pause if needed
                         if (this.IsBlockedProcessRunning())

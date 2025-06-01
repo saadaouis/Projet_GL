@@ -56,6 +56,12 @@ namespace EasySave.ViewModels
             this.SelectedProjects = new ObservableCollection<ModelBackup.Project>();
             this.projectProgress = new Dictionary<string, double>();
 
+            // Initialize pause/resume/stop commands
+            this.PauseProjectCommand = new RelayCommand<string>(name => modelBackup.PauseProject(name));
+            this.ResumeProjectCommand = new RelayCommand<string>(name => modelBackup.ResumeProject(name));
+            this.StopProjectCommand = new RelayCommand<string>(name => modelBackup.StopProject(name));
+
+
             // Setup forbidden app manager and processes to block
             this.appManager = new ForbiddenAppManager();
             this.appManager.AddForbiddenProcess("calc");
@@ -217,6 +223,13 @@ namespace EasySave.ViewModels
         /// Gets the refresh all command.
         /// </summary>
         public ICommand RefreshAllCommand { get; }
+
+        public ICommand PauseProjectCommand { get; }
+
+        public ICommand ResumeProjectCommand { get; }
+        
+        public ICommand StopProjectCommand { get; }
+
 
         /// <summary>
         /// Get the backup states.
