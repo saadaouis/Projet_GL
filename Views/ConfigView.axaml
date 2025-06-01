@@ -39,7 +39,7 @@
 
       <!-- Max File Size -->
       <StackPanel Orientation="Vertical" Spacing="5">
-        <TextBlock Text="{Binding T[config.max_file_size]}" FontWeight="Bold" FontSize="14"/>
+        <TextBlock Text="{Binding T[config.max_size]}" FontWeight="Bold" FontSize="14"/>
         <TextBox Text="{Binding CurrentConfig.MaxFolderSize}" Height="32" Padding="6"/>
       </StackPanel>
 

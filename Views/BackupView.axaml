@@ -81,9 +81,9 @@
                                              Foreground="#666"/>
                                     
                                     <!-- Warning for projects exceeding max size -->
-                                    <TextBlock Text="{Binding T[backup.max_size_warning]}"
+                                    <TextBlock Text="{Binding DataContext.T[backup.max_size_warning], RelativeSource={RelativeSource AncestorType=UserControl}}"
                                              Foreground="Red"
-                                             FontSize="12"s
+                                             FontSize="12"
                                              Margin="0,4,0,0"
                                              IsVisible="{Binding Size, Converter={StaticResource SizeWarningConverter}}"/>
                                     
