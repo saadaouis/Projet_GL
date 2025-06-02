@@ -95,12 +95,14 @@ namespace EasySave.Services.Server
             try
             {
                 var parts = command.Split('_');
-                if (parts.Length != 2)
-                {
-                    return "Invalid command format. Use: start_1, stop_2, cancel_3, or list";
-                }
-
                 var action = parts[0].ToLower();
+
+                if (action == "list")
+                    return ListActiveBackups();
+
+                if (parts.Length != 2)
+                    return "Invalid command format. Use: start_1, stop_2, cancel_3, or list";
+
                 var projectId = parts[1];
 
                 switch (action)
@@ -109,10 +111,10 @@ namespace EasySave.Services.Server
                         return await StartBackupAsync(projectId);
                     case "stop":
                         return StopBackup(projectId);
+                    case "resume":
+                        return ResumeBackup(projectId);
                     case "cancel":
                         return CancelBackup(projectId);
-                    case "list":
-                        return ListActiveBackups();
                     default:
                         return "Unknown command";
                 }
@@ -171,12 +173,12 @@ namespace EasySave.Services.Server
                     return "Project not found";
                 }
 
-                _modelBackup.StopProject(projectName);
-                return $"Stopped backup for project {projectName}";
+                _modelBackup.PauseProject(projectName);
+                return $"Paused backup for project {projectName}";
             }
             catch (Exception ex)
             {
-                return $"Error stopping backup: {ex.Message}";
+                return $"Error pausing backup: {ex.Message}";
             }
         }
 
@@ -191,6 +193,7 @@ namespace EasySave.Services.Server
                 }
 
                 _modelBackup.StopProject(projectName);
+                _activeBackups.Remove(projectName); // Remove from active backups
                 return $"Cancelled backup for project {projectName}";
             }
             catch (Exception ex)
@@ -199,7 +202,18 @@ namespace EasySave.Services.Server
             }
         }
 
-        private string ListActiveBackups()
+        public string ResumeBackup(string projectId)
+        {
+            var projectName = GetProjectNameFromId(projectId);
+            if (string.IsNullOrEmpty(projectName))
+            {
+                return "Project not found";
+            }
+            _modelBackup.ResumeProject(projectName);
+            return $"Resumed backup for project {projectName}";
+        }
+
+        public string ListActiveBackups()
         {
             var activeBackups = new List<string>();
             foreach (var backup in _activeBackups)
@@ -235,6 +249,11 @@ namespace EasySave.Services.Server
             // This could be done by maintaining a dictionary of project IDs to names
             // or by querying your project storage system
             return projectId; // For now, just return the ID as the name
+        }
+
+        public Dictionary<string, BackupState> GetActiveBackups()
+        {
+            return _activeBackups;
         }
     }
 }

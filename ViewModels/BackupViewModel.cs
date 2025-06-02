@@ -446,5 +446,118 @@ namespace EasySave.ViewModels
             
             return true;
         }
+
+        public async Task<string> ProcessCommandAsync(string command)
+        {
+            try
+            {
+                var parts = command.Split('_');
+                var action = parts[0].ToLower();
+
+                if (action == "list")
+                    return serverService.ListActiveBackups();
+
+                if (parts.Length != 2)
+                    return "Invalid command format. Use: start_1, stop_2, cancel_3, or list";
+
+                var projectId = parts[1];
+
+                switch (action)
+                {
+                    case "start":
+                        return await StartBackupAsync(projectId);
+                    case "stop":
+                        return StopBackup(projectId);
+                    case "cancel":
+                        return CancelBackup(projectId);
+                    default:
+                        return "Unknown command";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"Error processing command: {ex.Message}";
+            }
+        }
+
+        private async Task<string> StartBackupAsync(string projectId)
+        {
+            try
+            {
+                var projectName = GetProjectNameFromId(projectId);
+                if (string.IsNullOrEmpty(projectName))
+                {
+                    return "Project not found";
+                }
+
+                var progress = new Progress<double>(p => SetProjectProgress(projectName, p));
+                var state = await modelBackup.GetBackupStateAsync(projectName);
+
+                // Start backup in background
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await modelBackup.SaveProjectAsync(projectName, false, progress);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error during backup: {ex.Message}");
+                    }
+                });
+
+                return $"Started backup for project {projectName}";
+            }
+            catch (Exception ex)
+            {
+                return $"Error starting backup: {ex.Message}";
+            }
+        }
+
+        private string StopBackup(string projectId)
+        {
+            try
+            {
+                var projectName = GetProjectNameFromId(projectId);
+                if (string.IsNullOrEmpty(projectName))
+                {
+                    return "Project not found";
+                }
+
+                modelBackup.PauseProject(projectName);
+                return $"Paused backup for project {projectName}";
+            }
+            catch (Exception ex)
+            {
+                return $"Error pausing backup: {ex.Message}";
+            }
+        }
+
+        private string CancelBackup(string projectId)
+        {
+            try
+            {
+                var projectName = GetProjectNameFromId(projectId);
+                if (string.IsNullOrEmpty(projectName))
+                {
+                    return "Project not found";
+                }
+
+                modelBackup.StopProject(projectName);
+                return $"Cancelled backup for project {projectName}";
+            }
+            catch (Exception ex)
+            {
+                return $"Error cancelling backup: {ex.Message}";
+            }
+        }
+
+        private string GetProjectNameFromId(string projectId)
+        {
+            // TODO: Implement mapping from project ID to project name
+            // This could be done by maintaining a dictionary of project IDs to names
+            // or by querying your project storage system
+            return projectId; // For now, just return the ID as the name
+        }
     }
 }
