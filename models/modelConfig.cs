@@ -127,6 +127,9 @@ namespace EasySave.Models
 
             /// <summary>Gets or sets the log type (e.g., "json", "xml", "txt").</summary>
             public string LogType { get; set; } = "json";
+
+            /// <summary>Gets or sets the business softwares.</summary>
+            public string _forbiddenProcesses { get; set; } = ""; // Default forbidden processes
         }
     }
 }

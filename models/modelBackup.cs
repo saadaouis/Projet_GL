@@ -28,6 +28,12 @@ namespace EasySave.Models
         private readonly Dictionary<string, BackupState> backupStates = new();
         private readonly CryptosoftService cryptosoftService;
         private readonly BackupStateRecorder backupStateRecorder;
+        private List<string> forbiddenProcesses = new();
+        private readonly Dictionary<string, bool> pausedProjects = new();
+        private readonly Dictionary<string, bool> stoppedProjects = new();
+        private readonly Dictionary<string, string> currentBackupFolders = new();
+
+
 
         private readonly LoggingService logger;
 
@@ -45,6 +51,16 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
         }
 
         /// <summary>
@@ -57,6 +73,16 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+
+            // Load forbidden processes from config
+            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
+            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
+            {
+                forbiddenProcesses = config._forbiddenProcesses
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            }
         }
 
         ///<summary>Gets or sets the source directory path for backups.</summary>
@@ -132,6 +158,61 @@ namespace EasySave.Models
             return projects;
         }
 
+
+        public void PauseProject(string projectName)
+        {
+            Console.WriteLine($"Pausing project: {projectName}"); // Debug log
+            lock (pausedProjects)
+            {
+                pausedProjects[projectName] = true;
+            }
+        }
+
+        public void ResumeProject(string projectName)
+        {
+            Console.WriteLine($"Resuming project: {projectName}"); // Debug log
+            lock (pausedProjects)
+            {
+                pausedProjects[projectName] = false;
+                Monitor.PulseAll(pausedProjects);
+            }
+        }
+
+        public void StopProject(string projectName)
+        {
+            lock (stoppedProjects) 
+            {        
+                stoppedProjects[projectName] = true;
+
+                if (currentBackupFolders.TryGetValue(projectName, out var folderToDelete) && Directory.Exists(folderToDelete))
+                {
+                    try
+                    {
+                        Console.WriteLine($"Removing incomplete backup: {folderToDelete}");
+                        Directory.Delete(folderToDelete, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error cleaning up stopped backup: {ex.Message}");
+                    }
+                }
+            }
+            ResumeProject(projectName); // To break out of pause if needed
+        }
+
+        private bool IsProjectPaused(string projectName)
+        {
+            lock (pausedProjects)
+            {
+                return pausedProjects.TryGetValue(projectName, out var paused) && paused;
+            }
+        }
+
+        private bool IsProjectStopped(string projectName)
+        {
+            lock (stoppedProjects) { return stoppedProjects.TryGetValue(projectName, out var s) && s; }
+        }
+
         /// <summary>
         /// Gets the current backup state for a project.
         /// </summary>
@@ -147,7 +228,7 @@ namespace EasySave.Models
             return await Task.FromResult(this.backupStates[projectName]);
         }
 
-         /// <summary>
+        /// <summary>
         /// Saves a project with the specified version number.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -156,17 +237,18 @@ namespace EasySave.Models
         /// <returns>True if the save was successful, false otherwise.</returns>
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
+            // Initialize project state
+            lock (pausedProjects)
+            {
+                pausedProjects[projectName] = false;
+            }
+            lock (stoppedProjects)
+            {
+                stoppedProjects[projectName] = false;
+            }
+
             var stopwatch = Stopwatch.StartNew();
             var forbiddenAppManager = new ForbiddenAppManager();
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                forbiddenAppManager.AddForbiddenProcess("Calculator");
-            }
-            else
-            {
-                forbiddenAppManager.AddForbiddenProcess("notepad");
-                forbiddenAppManager.AddForbiddenProcess("calc");
-            }
 
             // V�rifie si un processus bloquant est en cours d'ex�cution
             if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
@@ -282,15 +364,18 @@ namespace EasySave.Models
                     // For manual backups, copy everything
                     var (major, minor) = GetNextVersionNumber(projectDir, isDifferential);
                     string versionDir = Path.Combine(saveDir, $"V{major}");
+                    currentBackupFolders[projectName] = versionDir;
                     if (!await this.CopyDirectoryRecursiveAsync(sourceDirPath, versionDir, state, progressReporter, projectName, isDifferential, stopwatch))
                     {
                         progressReporter?.Report(0); // Report 0% on failure if needed
                         return false;
                     }
-                    
+
+
                     // Wait a bit to ensure all files are written
                     await Task.Delay(1000);
-                    
+
+
                     Console.WriteLine($"Verifying files in {versionDir}");
                     if (!Directory.Exists(versionDir))
                     {
@@ -309,29 +394,66 @@ namespace EasySave.Models
                     this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
-                        if (File.Exists(file))
+
+                        if (IsProjectStopped(projectName))
                         {
-                            try
+                            Console.WriteLine($"Project {projectName} was stopped.");
+                            break;
+                        }
+
+                        // Pause logic
+                        lock (pausedProjects)
+                        {
+                            while (IsProjectPaused(projectName))
                             {
-                                var encryptTime = Stopwatch.StartNew();
-                                var encrypted = await this.cryptosoftService.Encrypt(file);
-                                encryptTime.Stop();
-                                this.totalEncryptTime += (float)encryptTime.Elapsed.TotalSeconds;
-                                Console.WriteLine($"Encrypted {file}: {encrypted} in {encryptTime.Elapsed.TotalSeconds:F3} seconds");
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Failed to encrypt {file}: {ex.Message}");
+                                Console.WriteLine($"Project {projectName} is paused, waiting...");
+                                Monitor.Wait(pausedProjects);
+                                if (IsProjectStopped(projectName)) // Check if stopped while paused
+                                {
+                                    break;
+                                }
                             }
                         }
-                        else
+
+                        // Check for forbidden process and pause if needed
+                        if (this.IsBlockedProcessRunning())
                         {
-                            Console.WriteLine($"File {file} does not exist");
+                            PauseProject(projectName);
+                            while (this.IsBlockedProcessRunning())
+                            {
+                                Thread.Sleep(1000); // Check every second
+                            }
+                            ResumeProject(projectName);
+                        }
+
+                        // Process the file only if not stopped
+                        if (!IsProjectStopped(projectName))
+                        {
+                            if (File.Exists(file))
+                            {
+                                try
+                                {
+                                    var encryptTime = Stopwatch.StartNew();
+                                    var encrypted = await this.cryptosoftService.Encrypt(file);
+                                    encryptTime.Stop();
+                                    this.totalEncryptTime += (float)encryptTime.Elapsed.TotalSeconds;
+                                    Console.WriteLine($"Encrypted {file}: {encrypted} in {encryptTime.Elapsed.TotalSeconds:F3} seconds");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to encrypt {file}: {ex.Message}");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"File {file} does not exist");
+                            }
                         }
                     }
-
-                    Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
                 }
+
+                Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
+                
 
                 state.IsComplete = true;
                 state.CurrentOperation = "Complete";
@@ -726,12 +848,12 @@ namespace EasySave.Models
         /// 
         private bool IsBlockedProcessRunning()
         {
-            string[] blockedProcesses = { "notepad", "calc", "calculator" };
             return Process.GetProcesses().Any(p =>
             {
                 try 
                 {
-                    return blockedProcesses.Contains(p.ProcessName.ToLower()); 
+                    return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
+                    return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                 }
                 catch 
                 {
@@ -755,6 +877,25 @@ namespace EasySave.Models
                 var modifiedFiles = new List<FileInfo>();
                 foreach (var sourceFile in allSourceFiles)
                 {
+                    //Add checks for stop and pause functions
+                    if (projectName != null && IsProjectStopped(projectName))
+                        return;
+
+                    if (projectName != null)
+                    {
+                        lock (pausedProjects)
+                        {
+                            while (IsProjectPaused(projectName))
+                            {
+                                Monitor.Wait(pausedProjects);
+                                if (IsProjectStopped(projectName))
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
                     string relativePath = Path.GetRelativePath(sourceDir, sourceFile.FullName);
                     string lastBackupFilePath = Path.Combine(lastBackupDir, relativePath);
                     if (!File.Exists(lastBackupFilePath))
@@ -838,6 +979,27 @@ namespace EasySave.Models
 
                 foreach (var fileInfo in sourceDirectoryInfo.GetFiles())
                 {
+                    //Add checks for pause and stop functions
+                    if (projectName != null && IsProjectStopped(projectName))
+                    {
+                        return false;
+                    }
+
+                    if (projectName != null)
+                    {
+                        lock (pausedProjects)
+                        {
+                            while (IsProjectPaused(projectName))
+                            {
+                                Monitor.Wait(pausedProjects);
+                                if (IsProjectStopped(projectName))
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+
                     string targetFilePath = Path.Combine(targetDir, fileInfo.Name);
                     await Task.Run(() => fileInfo.CopyTo(targetFilePath, true));
                     state.ProcessedFiles++;

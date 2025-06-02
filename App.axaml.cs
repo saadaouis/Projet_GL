@@ -255,16 +255,6 @@ namespace EasySave
             var forbiddenAppManager = App.ServiceProvider!.GetRequiredService<ForbiddenAppManager>();
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    forbiddenAppManager.AddForbiddenProcess("Calculator");
-                }
-                else
-                {
-                    forbiddenAppManager.AddForbiddenProcess("notepad");
-                    forbiddenAppManager.AddForbiddenProcess("calc");
-                }
-
                 if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
                 {
                     await this.ShowErrorWindowAsync(
