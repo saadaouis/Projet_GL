@@ -13,6 +13,7 @@ using EasySave.Services.ProcessControl;
 using EasySave.Services.Translation;
 using EasySave.Services.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using EasySave.Services.Server;
 
 namespace EasySave.ViewModels
 {
@@ -25,6 +26,8 @@ namespace EasySave.ViewModels
         private readonly TranslationService translationService;
         private readonly ForbiddenAppManager appManager;
         private readonly ModelConfig modelConfig;
+
+        private readonly BackupServer serverService;
 
         private bool isBackupInProgress;
         private Dictionary<string, double> projectProgress;
@@ -55,6 +58,9 @@ namespace EasySave.ViewModels
             this.availableBackups = [];
             this.SelectedProjects = new ObservableCollection<ModelBackup.Project>();
             this.projectProgress = new Dictionary<string, double>();
+
+            this.serverService = new BackupServer(8080, this.modelBackup, this.logger);
+            Task.Run(async () => await this.serverService.StartAsync());
 
             // Initialize pause/resume/stop commands
             this.PauseProjectCommand = new RelayCommand<string>(name => modelBackup.PauseProject(name));
