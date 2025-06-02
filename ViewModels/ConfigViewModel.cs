@@ -23,6 +23,7 @@ namespace EasySave.ViewModels
         private ModelConfig.Config currentConfig;
         private ModelConfig.Config originalConfig;
 
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigViewModel"/> class.
         /// </summary>
@@ -31,9 +32,10 @@ namespace EasySave.ViewModels
         public ConfigViewModel(ModelConfig modelConfig, TranslationService translationService)
             : base(translationService)
         {
-            this.modelConfig = modelConfig;
+            this.modelConfig = modelConfig; 
+
             this.translationService = translationService;
-            
+
             this.currentConfig = new ModelConfig.Config();
             this.originalConfig = new ModelConfig.Config();
 
@@ -58,7 +60,7 @@ namespace EasySave.ViewModels
                 }
             }
         }
-        
+
         /// <summary>
         /// Gets the list of available languages for the UI.
         /// </summary>
@@ -113,7 +115,7 @@ namespace EasySave.ViewModels
                 Console.WriteLine($"Language changed from {previousLanguage} to {this.CurrentConfig.Language}. Updating TranslationService.");
                 await this.translationService.SetLanguageAsync(this.CurrentConfig.Language ?? "en");
             }
-            
+
             this.mainViewModel?.ChangePaths(this.CurrentConfig.Source, this.CurrentConfig.Destination);
 
             // Navigate back to the main/backup view
@@ -126,7 +128,7 @@ namespace EasySave.ViewModels
             this.CurrentConfig = this.CloneConfig(this.originalConfig);
 
             // Also navigate back on cancel
-            this.mainViewModel?.NavigateToBackupView(); 
+            this.mainViewModel?.NavigateToBackupView();
         }
 
         private ModelConfig.Config CloneConfig(ModelConfig.Config configToClone)
@@ -142,7 +144,23 @@ namespace EasySave.ViewModels
                 Destination = configToClone.Destination,
                 Language = configToClone.Language,
                 MaxFolderSize = configToClone.MaxFolderSize,
+                _forbiddenProcesses = configToClone._forbiddenProcesses  // Changed to use underscore
+
             };
+        }
+
+        public string ForbiddenProcesses
+        {
+            get => this.CurrentConfig._forbiddenProcesses ?? string.Empty;
+            set
+            {
+                if (this.CurrentConfig._forbiddenProcesses != value)
+                {
+                    this.CurrentConfig._forbiddenProcesses = value;
+                    OnPropertyChanged(nameof(ForbiddenProcesses));
+                    ((MainViewModel.AsyncRelayCommand)this.SaveConfigCommand).RaiseCanExecuteChanged();
+                }
+            }
         }
     }
 }
