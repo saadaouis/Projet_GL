@@ -61,16 +61,6 @@ namespace EasySave.Models
                 .Select(s => s.Trim().ToLower())
                 .ToList();
             }
-
-            // Load forbidden processes from config
-            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
-            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
-            {
-                forbiddenProcesses = config._forbiddenProcesses
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim().ToLower())
-                .ToList();
-            }
         }
 
         /// <summary>
@@ -83,16 +73,6 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
-
-            // Load forbidden processes from config
-            var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
-            if (!string.IsNullOrWhiteSpace(config._forbiddenProcesses))
-            {
-                forbiddenProcesses = config._forbiddenProcesses
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim().ToLower())
-                .ToList();
-            }
 
             // Load forbidden processes from config
             var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
@@ -248,7 +228,7 @@ namespace EasySave.Models
             return await Task.FromResult(this.backupStates[projectName]);
         }
 
-         /// <summary>
+        /// <summary>
         /// Saves a project with the specified version number.
         /// </summary>
         /// <param name="projectName">The name of the project.</param>
@@ -257,7 +237,7 @@ namespace EasySave.Models
         /// <returns>True if the save was successful, false otherwise.</returns>
         public async Task<bool> SaveProjectAsync(string projectName, bool isDifferential = false, IProgress<double>? progressReporter = null)
         {
-             // Initialize project state
+            // Initialize project state
             lock (pausedProjects)
             {
                 pausedProjects[projectName] = false;
@@ -472,8 +452,6 @@ namespace EasySave.Models
                     }
                 }
 
-                Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
-                
                 Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
                 
 
