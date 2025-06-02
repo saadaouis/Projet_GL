@@ -80,15 +80,17 @@
                                     <TextBlock Text="{Binding Size, StringFormat='{}{0:N2} MB'}"
                                              Foreground="#666"/>
                                     
-                                    <Button Content="Pause"
-                                        Command="{Binding DataContext.PauseProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding Name}" />
-                                    <Button Content="Resume"
-                                        Command="{Binding DataContext.ResumeProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding Name}" />
-                                    <Button Content="Stop"
-                                        Command="{Binding DataContext.StopProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding Name}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Button Content="P"
+                                            Command="{Binding DataContext.PauseProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Name}" />
+                                        <Button Content="R"
+                                            Command="{Binding DataContext.ResumeProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Name}" />
+                                        <Button Content="S"
+                                            Command="{Binding DataContext.StopProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Name}" />
+                                    </StackPanel>
 
                                     <!-- Warning for projects exceeding max size -->
                                     <TextBlock Text="{Binding DataContext.T[backup.max_size_warning], RelativeSource={RelativeSource AncestorType=UserControl}}"

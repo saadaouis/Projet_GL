@@ -9,6 +9,7 @@ using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services.Logging;
 using EasySave.Services.Translation;
+using EasySave.Services.Server;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasySave.ViewModels
@@ -21,6 +22,8 @@ namespace EasySave.ViewModels
         private readonly BackupViewModel backupViewModel;
         private readonly ConfigViewModel configViewModel;
         private readonly TranslationService translationService;
+        private readonly BackupServer serverService;
+
         private readonly ModelConfig modelConfig;
         private bool isInitialized;
         private ViewModelBase currentView;

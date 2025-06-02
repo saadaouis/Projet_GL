@@ -18,6 +18,7 @@ using EasySave.Services.Translation;
 using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
+using EasySave.Services.Server;
 
 namespace EasySave
 {
@@ -40,6 +41,11 @@ namespace EasySave
         /// Gets global access to the service provider.
         /// </summary>
         public static IServiceProvider? ServiceProvider { get; private set; }
+
+        /// <summary>
+        /// Gets the backup progress reporter.
+        /// </summary>
+        public IBackupProgressReporter? BackupProgressReporter { get; private set; }
 
         /// <summary>
         /// Gets the main view model.
@@ -117,9 +123,10 @@ namespace EasySave
             services.AddSingleton<ConfigViewModel>();
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<CryptosoftService>();
-            
+            services.AddSingleton<IBackupProgressReporter, BackupProgressReporter>();
             // Enregistrement des modèles
             services.AddSingleton<ModelBackup>();
+
         }
 
         private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)

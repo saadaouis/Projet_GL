@@ -15,6 +15,7 @@ using EasySave.Services.Logging;
 using EasySave.Services.ProcessControl;
 using EasySave.Services.State;
 using Microsoft.Extensions.DependencyInjection;
+using EasySave.Services.Server;
 
 namespace EasySave.Models
 {
@@ -32,11 +33,9 @@ namespace EasySave.Models
         private readonly Dictionary<string, bool> pausedProjects = new();
         private readonly Dictionary<string, bool> stoppedProjects = new();
         private readonly Dictionary<string, string> currentBackupFolders = new();
-
-
-
         private readonly LoggingService logger;
-
+        private readonly BackupServer _backupServer;
+        private readonly IBackupProgressReporter _progressReporter;
         private float totalEncryptTime;
 
         /// <summary>
@@ -51,6 +50,11 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+            this._progressReporter = App.ServiceProvider!.GetRequiredService<IBackupProgressReporter>();
+
+            // Initialize backup server
+            this._backupServer = new BackupServer(8888, this, this.logger);
+            Task.Run(() => this._backupServer.StartAsync());
 
             // Load forbidden processes from config
             var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
@@ -73,6 +77,7 @@ namespace EasySave.Models
             this.backupStateRecorder = new BackupStateRecorder();
             this.cryptosoftService = ServiceExtensions.GetService<CryptosoftService>();
             this.logger = App.ServiceProvider!.GetRequiredService<LoggingService>();
+            this._progressReporter = App.ServiceProvider!.GetRequiredService<IBackupProgressReporter>();
 
             // Load forbidden processes from config
             var config = App.ServiceProvider!.GetRequiredService<ModelConfig>().Load();
@@ -945,7 +950,12 @@ namespace EasySave.Models
                     await Task.Run(() => sourceFile.CopyTo(destFile, true));
                     state.ProcessedFiles++;
                     state.ProcessedSize += sourceFile.Length;
-                    progressReporter?.Report(state.SizeProgressPercentage);
+                    var progress = state.SizeProgressPercentage;
+                    progressReporter?.Report(progress);
+                    if (projectName != null)
+                    {
+                        _progressReporter.ReportProgress(projectName, progress);
+                    }
                     await state.UpdateStateAsync();
 
                     // Record state after each file
@@ -1017,7 +1027,12 @@ namespace EasySave.Models
                     await Task.Run(() => fileInfo.CopyTo(targetFilePath, true));
                     state.ProcessedFiles++;
                     state.ProcessedSize += fileInfo.Length;
-                    progressReporter?.Report(state.SizeProgressPercentage);
+                    var progress = state.SizeProgressPercentage;
+                    progressReporter?.Report(progress);
+                    if (projectName != null)
+                    {
+                        _progressReporter.ReportProgress(projectName, progress);
+                    }
                     await state.UpdateStateAsync();
 
                     // Record state after each file
@@ -1052,6 +1067,10 @@ namespace EasySave.Models
                 Console.WriteLine($"Error copying directory: {ex.Message}");
                 state.ErrorMessage = $"Error copying: {ex.Message}";
                 state.IsComplete = true;
+                if (projectName != null)
+                {
+                    _progressReporter.ReportError(projectName, ex.Message);
+                }
                 progressReporter?.Report(state.SizeProgressPercentage);
                 await state.UpdateStateAsync();
                 return false;
@@ -1096,6 +1115,11 @@ namespace EasySave.Models
             /// Gets or sets the auto-save interval in seconds.
             /// </summary>
             public int AutoSaveInterval { get; set; } = 300; // Default 5 minutes */
+        }
+
+        public void StopServer()
+        {
+            _backupServer.Stop();
         }
     }
 }
