@@ -14,6 +14,25 @@ namespace EasySave.Services.ProcessControl
         private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         private bool _disposed;
 
+        public void InitializeFromConfig(string processesString)
+        {
+            if (string.IsNullOrWhiteSpace(processesString))
+                return;
+
+            _forbiddenProcesses.Clear();
+            
+            var processes = processesString.Split(',')
+                                        .Select(p => p.Trim())
+                                        .Where(p => !string.IsNullOrWhiteSpace(p));
+                                        
+            foreach (var process in processes)
+            {
+                AddForbiddenProcess(process);
+            }
+            
+            Console.WriteLine($"Initialized forbidden processes: {string.Join(", ", _forbiddenProcesses)}");
+        }
+
         // Adds a new process name to the list of forbidden processes, if its not already present
         public void AddForbiddenProcess(string processName)
         {
@@ -76,63 +95,54 @@ namespace EasySave.Services.ProcessControl
 
             try
             {
+                // Debug: Log forbidden processes being checked
+                Console.WriteLine($"Checking forbidden processes: {string.Join(", ", _forbiddenProcesses)}");
+                
+                // Get all running processes once
+                var allProcesses = Process.GetProcesses();
+                processesToDispose.AddRange(allProcesses);
+                
                 foreach (var name in _forbiddenProcesses)
                 {
                     try
                     {
-                        var processes = Process.GetProcessesByName(name);
-                        processesToDispose.AddRange(processes);
-
-                        if (processes.Any())
+                        // Check for exact process name match
+                        var matchingProcesses = allProcesses.Where(p => 
+                            p.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (matchingProcesses.Any())
                         {
+                            Console.WriteLine($"Found forbidden process: {name}");
                             runningApp = name;
                             return true;
                         }
 
-                        // Additional check for macOS .app processes
-                        if (IsMacOS)
+                        // Check for partial matches (especially useful for Linux/macOS)
+                        var partialMatches = allProcesses.Where(p => 
+                            p.ProcessName.Contains(name, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (partialMatches.Any())
                         {
-                            var allProcesses = Process.GetProcesses();
-                            processesToDispose.AddRange(allProcesses);
-
-                            foreach (var process in allProcesses)
-                            {
-                                try
-                                {
-                                    if (process.ProcessName.Contains(name, StringComparison.OrdinalIgnoreCase) || 
-                                        (name.EndsWith(".app") && process.ProcessName.Contains(name.Replace(".app", ""), StringComparison.OrdinalIgnoreCase)))
-                                    {
-                                        runningApp = name;
-                                        return true;
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Debug.WriteLine($"Error accessing process {process.ProcessName}: {ex.Message}");
-                                    continue;
-                                }
-                            }
+                            var matchedProcess = partialMatches.First();
+                            Console.WriteLine($"Found forbidden process (partial match): {name} as {matchedProcess.ProcessName}");
+                            runningApp = name;
+                            return true;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Error checking process {name}: {ex.Message}");
+                        Console.WriteLine($"Error checking process {name}: {ex.Message}");
                         continue;
                     }
                 }
+                
+                Console.WriteLine("No forbidden processes found running.");
             }
             finally
             {
                 foreach (var process in processesToDispose)
                 {
-                    try
-                    {
-                        process.Dispose();
-                    }
-                    catch
-                    {
-                        // Ignore disposal errors
-                    }
+                    try { process.Dispose(); } catch { /* Ignore disposal errors */ }
                 }
             }
 

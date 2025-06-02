@@ -102,7 +102,15 @@ namespace EasySave
             });
             services.AddSingleton<EasySave.Services.Translation.TranslationManager>();
             services.AddSingleton<EasySave.Models.ModelConfig>();
-            services.AddSingleton<ForbiddenAppManager>();
+            
+            // Remove the first registration and keep only this one
+            services.AddSingleton<ForbiddenAppManager>(sp =>
+            {
+                var config = sp.GetRequiredService<ModelConfig>().Load();
+                var manager = new ForbiddenAppManager();
+                manager.InitializeFromConfig(config._forbiddenProcesses);
+                return manager;
+            });
 
             // Enregistrement des ViewModels
             services.AddSingleton<BackupViewModel>();
@@ -125,19 +133,21 @@ namespace EasySave
             this.MainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
             this.ModelBackup = serviceProvider.GetRequiredService<ModelBackup>();
             this.ModelConfig = serviceProvider.GetRequiredService<ModelConfig>();
-            
-            await this.MainViewModel.InitializeAsync();
+
+            // Load configuration FIRST
             this.LoadConfigurationAsync();
-            await this.HandleCommandLineArgumentsAsync();
-            
-            // Check for forbidden applications
+
+            // THEN check for forbidden applications
             if (await this.CheckForbiddenApplicationsAsync())
             {
-                Environment.Exit(1);
+                Environment.Exit(1); // Make sure we exit here
                 return;
             }
 
-            // Create and show main window
+            // Only continue if no forbidden apps are running
+            await this.MainViewModel.InitializeAsync();
+            await this.HandleCommandLineArgumentsAsync();
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = this.MainViewModel,
@@ -255,23 +265,40 @@ namespace EasySave
             var forbiddenAppManager = App.ServiceProvider!.GetRequiredService<ForbiddenAppManager>();
             try
             {
+                // Load config and initialize forbidden processes
+                var config = this.ModelConfig!.Load();
+                forbiddenAppManager.InitializeFromConfig(config._forbiddenProcesses);
+
                 if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
                 {
-                    await this.ShowErrorWindowAsync(
-                        "Forbidden Application Detected",
-                        $"The forbidden application '{runningApp}' is currently running.\nPlease close it before continuing.");
+                    // Show warning in console
+                    Console.WriteLine($"[WARNING] Forbidden application '{runningApp}' is running");
+                    Console.WriteLine("Application will close in 5 seconds...");
+
+                    // Wait 5 seconds
+                    await Task.Delay(5000);
+
+                    // Force exit the application
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    {
+                        desktop.Shutdown(1);
+                    }
+                    else
+                    {
+                        Environment.Exit(1);
+                    }
                     return true;
                 }
+
+                Console.WriteLine("No forbidden applications found running.");
+                return false;
             }
             catch (Exception ex)
             {
-                await this.ShowErrorWindowAsync(
-                    "Error",
-                    $"An error occurred while checking for forbidden applications: {ex.Message}");
+                Console.WriteLine($"Error checking forbidden apps: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return true;
             }
-
-            return false;
         }
 
         private async Task ShowErrorWindowAsync(string title, string message)
@@ -290,7 +317,7 @@ namespace EasySave
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 },
             };
-            
+
             Console.WriteLine("Error: " + title + " " + message);
 
             if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

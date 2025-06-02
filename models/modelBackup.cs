@@ -250,15 +250,26 @@ namespace EasySave.Models
             var stopwatch = Stopwatch.StartNew();
             var forbiddenAppManager = new ForbiddenAppManager();
 
-            // V�rifie si un processus bloquant est en cours d'ex�cution
+            // Initial check
             if (forbiddenAppManager.IsAnyForbiddenAppRunning(out var runningApp))
             {
-                // Console visible uniquement si ton projet est en mode Console Application
-                Console.WriteLine($"[ALERTE] Le processus interdit '{runningApp}' est en cours d'ex�cution. Fermeture de l'application.");
-
-                Environment.Exit(1);
+                Console.WriteLine($"[ALERT] Forbidden process '{runningApp}' is running. Backup cannot start.");
                 return false;
             }
+
+            // Start a background task to continuously check for forbidden apps
+            var checkTask = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    if (IsBlockedProcessRunning())
+                    {
+                        StopProject(projectName);
+                        return;
+                    }
+                    await Task.Delay(1000); // Check every second
+                }
+            });
 
             try
             {
@@ -394,7 +405,6 @@ namespace EasySave.Models
                     this.totalEncryptTime = 0; // Reset total encryption time
                     foreach (var file in files)
                     {
-
                         if (IsProjectStopped(projectName))
                         {
                             Console.WriteLine($"Project {projectName} was stopped.");
@@ -453,7 +463,7 @@ namespace EasySave.Models
                 }
 
                 Console.WriteLine($"Encryption complete. Total encryption time: {this.totalEncryptTime:F3} seconds");
-                
+
 
                 state.IsComplete = true;
                 state.CurrentOperation = "Complete";
@@ -523,6 +533,10 @@ namespace EasySave.Models
 
                 Console.WriteLine($"Error saving project: {ex.Message}");
                 return false;
+            }
+            finally
+            {
+                checkTask.Dispose();
             }
         }
 
@@ -852,7 +866,6 @@ namespace EasySave.Models
             {
                 try 
                 {
-                    return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                     return forbiddenProcesses.Contains(p.ProcessName.ToLower()); 
                 }
                 catch 
