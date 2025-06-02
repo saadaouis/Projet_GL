@@ -64,9 +64,6 @@ namespace EasySave.ViewModels
 
             // Setup forbidden app manager and processes to block
             this.appManager = new ForbiddenAppManager();
-            this.appManager.AddForbiddenProcess("calc");
-            this.appManager.AddForbiddenProcess("Calculator");
-            this.forbiddenAppName = "notepad"; // Exemple, tu peux changer selon besoin
 
             this.canStartBackup = this.CheckIfCanStartBackup();
 
